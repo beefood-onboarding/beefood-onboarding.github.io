@@ -479,12 +479,13 @@ function markSharedDirty(){
   const metaRemote=fbRemote._metaConfig;
   const metaLocal={
     scriptTagsManaged:data.scriptTagsManaged||[],
+    wikiTagsManaged:data.wikiTagsManaged||[],
     settings:{
       finalIncluirFiscal:!!(data.settings&&data.settings.finalIncluirFiscal),
       finalIncluirPosVenda:!!(data.settings&&data.settings.finalIncluirPosVenda)
     }
   };
-  if(!metaRemote || recKey(metaRemote.scriptTagsManaged||[])!==recKey(metaLocal.scriptTagsManaged) || recKey(metaRemote.settings||{})!==recKey(metaLocal.settings)){
+  if(!metaRemote || recKey(metaRemote.scriptTagsManaged||[])!==recKey(metaLocal.scriptTagsManaged) || recKey(metaRemote.wikiTagsManaged||[])!==recKey(metaLocal.wikiTagsManaged) || recKey(metaRemote.settings||{})!==recKey(metaLocal.settings)){
     fbMetaDirty=true;
   }
 }
@@ -533,6 +534,7 @@ async function flushToCloud(forceAll){
   if(fbMetaDirty || forceAll){
     const payload=fbSanitize({
       scriptTagsManaged:data.scriptTagsManaged||[],
+      wikiTagsManaged:data.wikiTagsManaged||[],
       settings:{
         finalIncluirFiscal:!!(data.settings&&data.settings.finalIncluirFiscal),
         finalIncluirPosVenda:!!(data.settings&&data.settings.finalIncluirPosVenda)
@@ -656,8 +658,9 @@ function startTeamListeners(){
     fbMetaReady=true;
     if(!snap.exists){ fbRemote._metaConfig=null; return; }
     const m=snap.data()||{};
-    fbRemote._metaConfig={ scriptTagsManaged:m.scriptTagsManaged||[], settings:m.settings||{} };
+    fbRemote._metaConfig={ scriptTagsManaged:m.scriptTagsManaged||[], wikiTagsManaged:m.wikiTagsManaged||[], settings:m.settings||{} };
     if(m.scriptTagsManaged) data.scriptTagsManaged=m.scriptTagsManaged;
+    if(m.wikiTagsManaged) data.wikiTagsManaged=m.wikiTagsManaged;
     if(m.settings && data.settings){
       if(m.settings.finalIncluirFiscal!=null) data.settings.finalIncluirFiscal=m.settings.finalIncluirFiscal;
       if(m.settings.finalIncluirPosVenda!=null) data.settings.finalIncluirPosVenda=m.settings.finalIncluirPosVenda;
@@ -910,7 +913,8 @@ function exportTeamData(){
     trainings: data.trainings || [],
     manualSessions: data.manualSessions || [],
     bitrixTemplates: data.bitrixTemplates || [],
-    scriptTagsManaged: data.scriptTagsManaged || []
+    scriptTagsManaged: data.scriptTagsManaged || [],
+    wikiTagsManaged: data.wikiTagsManaged || []
   };
   const blob = new Blob([JSON.stringify(teamData, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
@@ -932,6 +936,7 @@ function importTeamData(ev){
       });
       if(team.clients) data.clients=team.clients.map(c=>{ try{ return normalizeClient(c); }catch(err){ return c; } });
       if(team.scriptTagsManaged) data.scriptTagsManaged = team.scriptTagsManaged;
+      if(team.wikiTagsManaged) data.wikiTagsManaged = team.wikiTagsManaged;
       save();
       if(typeof flushToCloud==='function') flushToCloud(true).catch(()=>{});
       showToast('Dados da equipe importados!');
@@ -956,6 +961,7 @@ async function loadFromTeam(){
     if(meta.exists){
       const m=meta.data()||{};
       if(m.scriptTagsManaged) data.scriptTagsManaged=m.scriptTagsManaged;
+      if(m.wikiTagsManaged) data.wikiTagsManaged=m.wikiTagsManaged;
       if(m.settings && data.settings){
         if(m.settings.finalIncluirFiscal!=null) data.settings.finalIncluirFiscal=m.settings.finalIncluirFiscal;
         if(m.settings.finalIncluirPosVenda!=null) data.settings.finalIncluirPosVenda=m.settings.finalIncluirPosVenda;
@@ -1038,12 +1044,14 @@ const LEVEL_XP=[{nivel:1,nome:'Operador',min:0},{nivel:2,nome:'Analista',min:200
 const BADGE_DEFS=[{id:'first_blood',nome:'Primeiro go-live',desc:'1 go-live',icon:'🚀',check:m=>m.goLives>=1},{id:'closer_5',nome:'Closer',desc:'5 go-lives',icon:'🎯',check:m=>m.goLives>=5},{id:'trainer',nome:'Treinador',desc:'3 treinos 100%',icon:'🎓',check:m=>m.trainingsDone>=3},{id:'wiki_hero',nome:'Guardião Wiki',desc:'3 artigos',icon:'🧠',check:m=>m.wikiOwn>=3},{id:'streak_3',nome:'Sequência 3',desc:'3 dias',icon:'🔥',check:m=>m.streak>=3},{id:'fiscal_ready',nome:'Olho fiscal',desc:'5 cards fiscal',icon:'🧾',check:m=>m.fiscalFilled>=5},{id:'xp_500',nome:'500 XP',desc:'500 XP',icon:'⭐',check:m=>m.xp>=500}];
 const CARREIRA={missao:'Garantir onboarding seguro: sistema ok, treino feito, fiscal/TEF/impressão validados e card com histórico.',roteiroDia:['Abrir Hoje: alertas e meu dia','Priorizar urgente → andamento','Ler card antes do remoto','Checklist + gravação + histórico','Pendências ou finalização','5 min na Wiki se aprendeu algo'],niveis:[{nome:'N1 Operador',objetivo:'Roteiro padrão com supervisão.',faz:['Checklist','Remoto básico','Impressora Windows','Cardápio básico']},{nome:'N2 Analista',objetivo:'Completo + iFood autonomia.',faz:['Delivery+Mesas','iFood vínculo','Áreas entrega','QR mesa']},{nome:'N3 Especialista',objetivo:'Fiscal, TEF, casos difíceis.',faz:['NFC-e','Stone','Multi impressoras','Wiki']},{nome:'N4 Líder',objetivo:'Padrão do time e formação.',faz:['SLA','Revisão cards','Trilha 30 dias','Métricas']}],errosComuns:[{erro:'Treinar sem caixa',evita:'Caixa sempre primeiro'},{erro:'Finalizar sem impressão',evita:'Pedido teste real'},{erro:'Fiscal sem anotar',evita:'UF/CSC no card'},{erro:'Card vazio',evita:'Histórico ao fim de cada bloco'}]};
 
-let data={clients:[],agenda:[],scripts:[],trainings:[],casos:[],manualSessions:[],bitrixTemplates:null,gamification:null,lastBackupAt:null,wikiTagFilter:'',scriptTagFilter:'',scriptTagsManaged:[],settings:{sound:true,theme:'dark',finalIncluirFiscal:false,finalIncluirPosVenda:false}};
+let data={clients:[],agenda:[],scripts:[],trainings:[],casos:[],manualSessions:[],bitrixTemplates:null,gamification:null,lastBackupAt:null,wikiTagFilter:'',scriptTagFilter:'',scriptTagsManaged:[],wikiTagsManaged:[],settings:{sound:true,theme:'dark',finalIncluirFiscal:false,finalIncluirPosVenda:false}};
 let currentTab='dashboard',selectedId=null,selectedType=null,isRecording=false,recognition=null;
 try{const raw=localStorage.getItem(STORAGE_KEY)||localStorage.getItem('beefood_onboarding_v3');if(raw)data=Object.assign(data,JSON.parse(raw));}catch(e){}
 if(!data.settings) data.settings={sound:true,theme:'dark',finalIncluirFiscal:false,finalIncluirPosVenda:false};
 if(data.settings.finalIncluirFiscal==null) data.settings.finalIncluirFiscal=false;
 if(data.settings.finalIncluirPosVenda==null) data.settings.finalIncluirPosVenda=false;
+if(!data.wikiTagsManaged) data.wikiTagsManaged=[];
+if(!data.scriptTagsManaged) data.scriptTagsManaged=[];
 if(data.settings.theme==='light') document.body.classList.add('theme-light');
 
 
@@ -1189,7 +1197,7 @@ function ensureDefaultScripts(){
 }
 function ensureBitrixTemplates(){if(!data.bitrixTemplates||!data.bitrixTemplates.length){data.bitrixTemplates=DEFAULT_BITRIX.map(t=>({id:t.id||uid(),titulo:t.titulo,texto:t.texto}));save()}}
 function needsWeeklyBackup(){if(!data.lastBackupAt)return true;return(Date.now()-new Date(data.lastBackupAt).getTime())>7*86400000}
-function exportData(){const payload={version:4,exportedAt:new Date().toISOString(),clients:data.clients,agenda:data.agenda,scripts:data.scripts,trainings:data.trainings,casos:data.casos,manualSessions:data.manualSessions,bitrixTemplates:data.bitrixTemplates,gamification:data.gamification,lastBackupAt:new Date().toISOString()};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='onboarding-backup-'+todayKey()+'.json';a.click();data.lastBackupAt=new Date().toISOString();save();showToast('Backup baixado')}
+function exportData(){const payload={version:4,exportedAt:new Date().toISOString(),clients:data.clients,agenda:data.agenda,scripts:data.scripts,trainings:data.trainings,casos:data.casos,manualSessions:data.manualSessions,bitrixTemplates:data.bitrixTemplates,gamification:data.gamification,scriptTagsManaged:data.scriptTagsManaged||[],wikiTagsManaged:data.wikiTagsManaged||[],lastBackupAt:new Date().toISOString()};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='onboarding-backup-'+todayKey()+'.json';a.click();data.lastBackupAt=new Date().toISOString();save();showToast('Backup baixado')}
 function importData(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const imp=JSON.parse(r.result);if(imp.clients)data.clients=imp.clients.map(normalizeClient);if(imp.scripts)data.scripts=imp.scripts;if(imp.trainings)data.trainings=imp.trainings;if(imp.casos)data.casos=imp.casos;if(imp.manualSessions)data.manualSessions=imp.manualSessions;if(imp.agenda)data.agenda=imp.agenda;if(imp.bitrixTemplates)data.bitrixTemplates=imp.bitrixTemplates;if(imp.gamification)data.gamification=imp.gamification;if(imp.lastBackupAt)data.lastBackupAt=imp.lastBackupAt;save();if(typeof flushToCloud==='function')flushToCloud(true).catch(()=>{});showToast('Importado');switchTab('clientes')}catch(e){showToast('JSON inválido')}};r.readAsText(f)}
 
 
@@ -1294,7 +1302,7 @@ function renderSidebar(){
     if(q) list=list.filter(s=>((s.titulo||'')+' '+(s.texto||'')+' '+(s.tags||[]).join(' ')).toLowerCase().includes(q));
     document.getElementById('listCount').textContent=list.length+' scripts';
     area.innerHTML=list.map(s=>`<div class="list-item ${selectedId===s.id?'active':''}" onclick="selectScript('${s.id}')"><div class="list-item-title">${escapeHtml(s.titulo)}</div>${s.tags&&s.tags.length?`<div class="list-item-meta">${s.tags.slice(0,2).map(t=>'<span class="tag-chip" style="font-size:.65rem;padding:1px 5px">'+escapeHtml(t)+'</span>').join(' ')}</div>`:''}</div>`).join('')||'<div class="empty-msg">Nenhum script</div>';
-  }else if(currentTab==='casos'){const q=((document.getElementById('searchInput')||{}).value||'');const tag=data.wikiTagFilter||'';const list=filterWikiList(data.casos||[],q,tag).slice(0,50);document.getElementById('listCount').textContent=list.length;area.innerHTML=list.map(c=>`<div class="list-item ${selectedId===c.id?'active':''}" onclick="selectCaso('${c.id}')"><div class="list-item-title">${escapeHtml(c.titulo)}</div>${(c.anexos&&c.anexos.length)?`<div class="list-item-meta">${c.anexos.length} arquivo${c.anexos.length>1?'s':''}</div>`:''}</div>`).join('')||'<div class="empty-msg">Nenhum artigo</div>'}else{document.getElementById('listCount').textContent=currentTab;area.innerHTML='<div class="empty-msg">Painel →</div>'}}
+  }else if(currentTab==='casos'){const q=((document.getElementById('searchInput')||{}).value||'');const tag=data.wikiTagFilter||'';const list=filterWikiList(data.casos||[],q,tag);document.getElementById('listCount').textContent=list.length+' artigos';area.innerHTML=list.map(c=>`<div class="list-item ${selectedId===c.id?'active':''}" onclick="selectCaso('${c.id}')"><div class="list-item-title">${escapeHtml(c.titulo)}</div>${((c.tags&&c.tags.length)||(c.anexos&&c.anexos.length))?`<div class="list-item-meta">${(c.tags||[]).slice(0,2).map(tg=>'<span class="tag-chip" style="font-size:.65rem;padding:1px 5px">'+escapeHtml(tg)+'</span>').join(' ')}${(c.anexos&&c.anexos.length)?' · '+c.anexos.length+' arquivo'+(c.anexos.length>1?'s':''):''}</div>`:''}</div>`).join('')||'<div class="empty-msg">Nenhum artigo</div>'}else{document.getElementById('listCount').textContent=currentTab;area.innerHTML='<div class="empty-msg">Painel →</div>'}}
 
 function renderClientList(area){const search=((document.getElementById('searchInput')||{}).value||'').toLowerCase().trim();const filter=((document.getElementById('statusFilter')||{}).value)||'acompanhando';const prio=((document.getElementById('prioFilter')||{}).value)||'all';let list=(data.clients||[]).filter(c=>{const ms=!search||(c.nome||'').toLowerCase().includes(search)||(c.codigo||'').toLowerCase().includes(search)||(c.observacoes||'').toLowerCase().includes(search);if(!ms)return false;if(prio!=='all'&&c.prioridade!==prio)return false;const st=getStatus(c),arch=!!c.archived;if(filter==='arquivados')return arch;if(filter==='meu_dia')return isMeuDia(c);if(filter==='sla_atrasado'){const s=getSlaStatus(c);return !arch&&s&&s.days<0&&st!=='concluido'}if(filter==='acompanhando')return !arch&&(st==='em_andamento'||st==='nao_iniciado');if(filter==='all')return !arch;return !arch&&st===filter});list.sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));document.getElementById('listCount').textContent=list.length+' clientes';
 area.innerHTML=list.map(c=>{
@@ -2080,13 +2088,15 @@ function filterWikiList(list, q, tag){
   if(nq) out=out.filter(c=>normSearch(wikiBlob(c)).includes(nq));
   return out;
 }
+function ensureWikiTagsManaged(){ if(!data.wikiTagsManaged) data.wikiTagsManaged=[]; }
 function allWikiTags(){
   const set=new Set();
-  (data.casos||[]).forEach(c=>(c.tags||[]).forEach(t=>set.add(t)));
+  (data.casos||[]).forEach(c=>(c.tags||[]).forEach(tg=>set.add(tg)));
+  (data.wikiTagsManaged||[]).forEach(tg=>set.add(tg));
   return Array.from(set).sort();
 }
 function setWikiTag(tag){
-  data.wikiTagFilter=(data.wikiTagFilter===tag)?'':tag;
+  data.wikiTagFilter=tag||'';
   renderCasosHome();
   renderSidebar();
 }
@@ -2096,11 +2106,99 @@ function setWikiQuery(val){
   renderCasosHome();
   renderSidebar();
 }
+function openWikiTagManager(){
+  ensureWikiTagsManaged();
+  const tituloEl=document.getElementById('m_titulo');
+  if(tituloEl){
+    window._wikiFormStash={
+      id:(document.getElementById('m_id')||{}).value||'',
+      titulo:tituloEl.value,
+      texto:(document.getElementById('m_texto')||{}).value||'',
+      solucao:(document.getElementById('m_solucao')||{}).value||'',
+      tags:Array.from(document.querySelectorAll('.wiki-tag-check:checked')).map(el=>el.value)
+    };
+  }
+  const tags=allWikiTags();
+  document.getElementById('modal').style.display='flex';
+  document.getElementById('modal').innerHTML=`
+    <div class="modal-box" style="max-width:420px">
+      <h3>Gerenciar tags da Wiki</h3>
+      <div style="margin-bottom:12px;display:flex;gap:6px">
+        <input id="newWikiTagInput" placeholder="Nova tag / filtro" style="flex:1" onkeydown="if(event.key==='Enter')addWikiManagedTag()"/>
+        <button class="btn btn-sm btn-success" onclick="addWikiManagedTag()">+</button>
+      </div>
+      <div style="max-height:280px;overflow:auto;margin-bottom:12px">
+        ${tags.map(tg=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
+            <span>${escapeHtml(tg)}</span>
+            <div style="display:flex;gap:4px">
+              <button class="btn btn-sm btn-outline" onclick="renameWikiManagedTag('${escapeHtml(tg)}')">✏️</button>
+              <button class="btn btn-sm btn-outline" style="color:var(--danger)" onclick="deleteWikiManagedTag('${escapeHtml(tg)}')">🗑️</button>
+            </div>
+          </div>`).join('') || '<div class="empty-msg">Nenhuma tag</div>'}
+      </div>
+      <div style="display:flex;justify-content:flex-end"><button class="btn btn-outline" onclick="closeWikiTagManager()">Fechar</button></div>
+    </div>`;
+}
+function closeWikiTagManager(){
+  const stash=window._wikiFormStash;
+  closeModal();
+  if(stash){
+    openCasoModal(stash.id||'');
+    const setv=(id,val)=>{ const el=document.getElementById(id); if(el) el.value=val; };
+    setv('m_id', stash.id||'');
+    setv('m_titulo', stash.titulo||'');
+    setv('m_texto', stash.texto||'');
+    setv('m_solucao', stash.solucao||'');
+    document.querySelectorAll('.wiki-tag-check').forEach(el=>{ el.checked=(stash.tags||[]).includes(el.value); });
+    window._wikiFormStash=null;
+  } else {
+    renderCasosHome();
+    renderSidebar();
+  }
+}
+function addWikiManagedTag(){
+  const name=(document.getElementById('newWikiTagInput').value||'').trim().toLowerCase();
+  if(!name) return;
+  ensureWikiTagsManaged();
+  if(!data.wikiTagsManaged.includes(name)) data.wikiTagsManaged.push(name);
+  save();
+  openWikiTagManager();
+}
+function renameWikiManagedTag(oldName){
+  const newName=prompt('Novo nome da tag:', oldName);
+  if(!newName || !newName.trim() || newName.trim()===oldName) return;
+  const clean=newName.trim().toLowerCase();
+  (data.casos||[]).forEach(c=>{ if(c.tags) c.tags=c.tags.map(tg=>tg===oldName?clean:tg); });
+  ensureWikiTagsManaged();
+  data.wikiTagsManaged=data.wikiTagsManaged.map(tg=>tg===oldName?clean:tg);
+  if(!data.wikiTagsManaged.includes(clean)) data.wikiTagsManaged.push(clean);
+  if(data.wikiTagFilter===oldName) data.wikiTagFilter=clean;
+  if(window._wikiFormStash && window._wikiFormStash.tags){
+    window._wikiFormStash.tags=window._wikiFormStash.tags.map(tg=>tg===oldName?clean:tg);
+  }
+  save();
+  openWikiTagManager();
+  showToast('Tag renomeada');
+}
+function deleteWikiManagedTag(name){
+  if(!confirm('Remover a tag "'+name+'" de todos os artigos da Wiki?')) return;
+  (data.casos||[]).forEach(c=>{ if(c.tags) c.tags=c.tags.filter(tg=>tg!==name); });
+  ensureWikiTagsManaged();
+  data.wikiTagsManaged=data.wikiTagsManaged.filter(tg=>tg!==name);
+  if(data.wikiTagFilter===name) data.wikiTagFilter='';
+  if(window._wikiFormStash && window._wikiFormStash.tags){
+    window._wikiFormStash.tags=window._wikiFormStash.tags.filter(tg=>tg!==name);
+  }
+  save();
+  openWikiTagManager();
+  showToast('Tag removida');
+}
 function isWikiImage(anexo){
   if(!anexo) return false;
   if(anexo.isImage) return true;
-  const t=(anexo.tipo||'').toLowerCase();
-  if(t.indexOf('image/')===0) return true;
+  const typ=(anexo.tipo||'').toLowerCase();
+  if(typ.indexOf('image/')===0) return true;
   return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(anexo.nome||'');
 }
 function formatFileSize(n){
@@ -2121,14 +2219,14 @@ function renderWikiAnexos(anexos, opts){
   let html='';
   if(images.length){
     html += `<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${images.map(a=>`
-      <div style="flex:0 0 auto;max-width:180px">
-        <img src="${escapeHtml(a.url||'')}" alt="${escapeHtml(a.nome||'imagem')}" style="height:${compact?'72':'140'}px;max-width:180px;border-radius:6px;border:1px solid var(--border);object-fit:cover;cursor:pointer" onclick="window.open('${escapeHtml(a.url||'')}','_blank')" />
+      <div style="flex:0 0 auto;max-width:180px" onclick="event.stopPropagation()">
+        <img src="${escapeHtml(a.url||'')}" alt="${escapeHtml(a.nome||'imagem')}" style="height:${compact?'72':'140'}px;max-width:180px;border-radius:6px;border:1px solid var(--border);object-fit:cover;cursor:pointer" onclick="event.stopPropagation();window.open('${escapeHtml(a.url||'')}','_blank')" />
         ${a.descricao?`<div style="font-size:.7rem;color:var(--text-muted);margin-top:3px">${escapeHtml(a.descricao)}</div>`:''}
       </div>`).join('')}</div>`;
   }
   if(files.length){
     html += `<div style="margin-top:8px">${files.map(a=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px" onclick="event.stopPropagation()">
         <div style="min-width:0">
           <div style="font-size:.82rem;font-weight:600">📎 ${escapeHtml(a.nome||'arquivo')}</div>
           <div style="font-size:.7rem;color:var(--text-muted)">${formatFileSize(a.size)}${a.descricao?' · '+escapeHtml(a.descricao):''}</div>
@@ -2144,64 +2242,100 @@ function renderCasosHome(){
   const tag=data.wikiTagFilter||'';
   const list=filterWikiList(data.casos||[], q, tag);
   const tags=allWikiTags();
-  const chips=[''].concat(tags).map(t=>{
-    const label=t||'Todas';
-    const active=(!t && !tag) || (t && tag===t);
-    const click=t?`setWikiTag('${escapeHtml(t)}')`:`setWikiTag('')`;
-    return `<span class="tag-chip ${active?'active':''}" onclick="${click}">${escapeHtml(label)}</span>`;
-  }).join('');
-  const cards=list.map(c=>{
-    const n=(c.anexos||[]).length;
-    const preview=(c.texto||c.solucao||'').slice(0,140);
-    const thumbs=(c.anexos||[]).filter(isWikiImage).slice(0,3);
-    const thumbHtml=thumbs.length?`<div style="display:flex;gap:6px;margin-top:6px">${thumbs.map(a=>`<img src="${escapeHtml(a.url||'')}" style="height:44px;width:56px;object-fit:cover;border-radius:4px;border:1px solid var(--border)"/>`).join('')}</div>`:'';
-    return `<div class="info-card wide" style="margin-bottom:8px;cursor:pointer" onclick="selectCaso('${c.id}')">
-      <div class="info-card-label">${escapeHtml(c.titulo)}</div>
-      <div class="info-card-value" style="font-size:.8rem">${escapeHtml(preview)}</div>
-      ${thumbHtml}
-      <div style="margin-top:4px">${(c.tags||[]).map(tg=>`<span class="tag-chip" onclick="event.stopPropagation();setWikiTag('${escapeHtml(tg)}')">${escapeHtml(tg)}</span>`).join('')}${n?`<span class="tag-chip" style="cursor:default">📎 ${n} arquivo${n>1?'s':''}</span>`:''}</div>
-    </div>`;
-  }).join('')||'<div class="empty-msg">Nenhum artigo encontrado</div>';
+  const tagOptions='<option value="">Todas as tags</option>'+tags.map(tg=>`<option value="${escapeHtml(tg)}" ${tag===tg?'selected':''}>${escapeHtml(tg)}</option>`).join('');
+  let html='';
+  if(tag){
+    html=list.map(c=>renderWikiCard(c)).join('');
+  } else {
+    const grouped={};
+    list.forEach(c=>{
+      const key=((c.tags||[])[0])||'sem-tag';
+      if(!grouped[key]) grouped[key]=[];
+      grouped[key].push(c);
+    });
+    const keys=Object.keys(grouped).sort((a,b)=>{
+      if(a==='sem-tag') return 1;
+      if(b==='sem-tag') return -1;
+      return a.localeCompare(b,'pt-BR');
+    });
+    keys.forEach(key=>{
+      const label=key==='sem-tag'?'Sem tag':key;
+      html += `<div style="margin:14px 0 6px;font-size:.75rem;color:var(--text-muted);font-weight:600">${escapeHtml(label)}</div>`;
+      html += grouped[key].map(c=>renderWikiCard(c)).join('');
+    });
+  }
   document.getElementById('detailView').innerHTML=`
     <div class="main-header">
       <div class="main-header-info"><h2>Wiki</h2><div class="main-header-meta">${list.length} artigo${list.length===1?'':'s'}</div></div>
       <div class="main-header-actions">
-        <button class="btn btn-sm btn-success" onclick="openCasoModal()">+ Artigo</button>
+        <button class="btn btn-sm btn-outline" onclick="openWikiTagManager()">Tags</button>
+        <button class="btn btn-sm btn-success" onclick="openCasoModal()">+ Novo</button>
       </div>
     </div>
     <div class="main-content">
       <div style="margin-bottom:12px">
         <input id="wikiSearchBox" value="${escapeHtml(q)}" placeholder="Buscar artigos, tags, drivers e imagens..." oninput="setWikiQuery(this.value)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px"/>
       </div>
-      <div style="margin-bottom:12px">${chips}</div>
-      ${cards}
+      <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <label style="font-size:.75rem;color:var(--text-muted)">Filtro:</label>
+        <select onchange="setWikiTag(this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;min-width:200px">${tagOptions}</select>
+      </div>
+      ${html || '<div class="empty-msg">Nenhum artigo encontrado</div>'}
     </div>`;
+}
+function renderWikiCard(c){
+  const active = selectedId===c.id ? 'border-left:4px solid var(--primary);' : '';
+  const preview=(c.texto||'').trim();
+  const solucao=(c.solucao||'').trim();
+  return `<div class="info-card wide" data-cid="${c.id}" style="margin-bottom:8px;${active}" onclick="selectCaso('${c.id}')">
+    <div class="info-card-label">${escapeHtml(c.titulo)}</div>
+    ${preview?`<div class="info-card-value" style="font-size:.82rem;white-space:pre-wrap">${escapeHtml(preview)}</div>`:''}
+    ${solucao?`<div class="info-card-value" style="font-size:.82rem;white-space:pre-wrap;margin-top:6px"><span style="font-size:.7rem;color:var(--text-muted);font-weight:600">Solução / explicação</span><br>${escapeHtml(solucao)}</div>`:''}
+    ${renderWikiAnexos(c.anexos||[], {compact:true})}
+    <div style="margin-top:4px">${(c.tags||[]).map(tg=>`<span class="tag-chip" onclick="event.stopPropagation();setWikiTag('${escapeHtml(tg)}')">${escapeHtml(tg)}</span>`).join('')}</div>
+    <div style="display:flex;gap:4px;margin-top:6px" onclick="event.stopPropagation()">
+      <button class="btn btn-sm btn-success" onclick="event.stopPropagation();copyCaso('${c.id}')">📋 Copiar</button>
+      <button class="btn btn-sm btn-outline" onclick="event.stopPropagation();openCasoModal('${c.id}')">✏️ Editar</button>
+      <button class="btn btn-sm btn-outline" style="color:var(--danger)" onclick="event.stopPropagation();deleteCaso('${c.id}')">🗑️</button>
+    </div>
+  </div>`;
 }
 function selectCaso(id){
   const c=(data.casos||[]).find(x=>x.id===id);
   if(!c) return;
   selectedId=id;
   selectedType='caso';
-  showDetail();
-  document.getElementById('detailView').innerHTML=`
-    <div class="main-header">
-      <div class="main-header-info"><h2>${escapeHtml(c.titulo)}</h2></div>
-      <div class="main-header-actions">
-        <button class="btn btn-sm btn-outline" onclick="openCasoModal('${c.id}')">Editar</button>
-        <button class="btn btn-sm btn-outline" style="color:var(--danger)" onclick="deleteCaso('${c.id}')">Excluir</button>
-        <button class="btn btn-sm btn-outline" onclick="renderCasosHome()">Voltar</button>
-      </div>
-    </div>
-    <div class="main-content">
-      <div class="info-card wide"><div class="info-card-label">Resumo</div><div class="info-card-value" style="white-space:pre-wrap">${escapeHtml(c.texto||'')}</div></div>
-      <div class="info-card wide" style="margin-top:8px"><div class="info-card-label">Solução / explicação</div><div class="info-card-value" style="white-space:pre-wrap">${escapeHtml(c.solucao||'')}</div></div>
-      <div class="info-card wide" style="margin-top:8px">
-        <div class="info-card-label">Arquivos e imagens</div>
-        <div class="info-card-value">${(c.anexos&&c.anexos.length)?renderWikiAnexos(c.anexos):'<span style="color:var(--text-muted)">Nenhum arquivo neste artigo.</span>'}</div>
-      </div>
-      <div style="margin-top:8px">${(c.tags||[]).map(tg=>`<span class="tag-chip" onclick="setWikiTag('${escapeHtml(tg)}')">${escapeHtml(tg)}</span>`).join('')}</div>
-    </div>`;
+  renderCasosHome();
   renderSidebar();
+  setTimeout(()=>{
+    const el=document.querySelector(`.info-card[data-cid="${id}"]`);
+    if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+  },50);
+}
+function copyCaso(id){
+  const c=(data.casos||[]).find(x=>x.id===id);
+  if(!c) return;
+  const text=[c.titulo,c.texto,c.solucao].filter(Boolean).join('\n\n');
+  const ok=()=>showToast('Artigo copiado!');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(ok).catch(()=>{
+      const ta=document.createElement('textarea');
+      ta.value=text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      ok();
+    });
+  } else {
+    const ta=document.createElement('textarea');
+    ta.value=text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    ok();
+  }
 }
 function refreshWikiAnexoPreview(){
   const cont=document.getElementById('wikiAnexoPreview');
@@ -2257,17 +2391,30 @@ function handleWikiFiles(files){
 }
 function openCasoModal(id){
   const c=id?(data.casos||[]).find(x=>x.id===id):null;
-  window._wikiAnexos=(c&&c.anexos)?c.anexos.map(a=>Object.assign({},a)):[]
-  window._wikiAnexosRemoved=[];
+  const stash=window._wikiFormStash;
+  if(!stash){
+    window._wikiAnexos=(c&&c.anexos)?c.anexos.map(a=>Object.assign({},a)):[];
+    window._wikiAnexosRemoved=[];
+  }
+  const titulo=stash?stash.titulo:(c?c.titulo:'');
+  const texto=stash?stash.texto:(c?(c.texto||''):'');
+  const solucao=stash?stash.solucao:(c?(c.solucao||''):'');
+  const selected=stash&&stash.tags?stash.tags:(c?(c.tags||[]):[]);
+  const allTags=allWikiTags();
   document.getElementById('modal').style.display='flex';
   document.getElementById('modal').innerHTML=`
     <div class="modal-box" style="max-width:560px">
-      <h3>${c?'Editar artigo':'Novo artigo'}</h3>
-      <input type="hidden" id="m_id" value="${c?c.id:''}"/>
-      <div class="form-group"><label>Título</label><input id="m_titulo" value="${c?escapeHtml(c.titulo):''}"/></div>
-      <div class="form-group"><label>Resumo</label><textarea id="m_texto">${c?escapeHtml(c.texto||''):''}</textarea></div>
-      <div class="form-group"><label>Solução / explicação</label><textarea id="m_solucao" style="min-height:120px">${c?escapeHtml(c.solucao||''):''}</textarea></div>
-      <div class="form-group"><label>Tags</label><input id="m_tags" value="${c?(c.tags||[]).join(', '):''}" placeholder="ex: impressão, driver, fiscal"/></div>
+      <h3>${c||(stash&&stash.id)?'Editar artigo':'Novo artigo'}</h3>
+      <input type="hidden" id="m_id" value="${stash&&stash.id?escapeHtml(stash.id):(c?c.id:'')}"/>
+      <div class="form-group"><label>Título</label><input id="m_titulo" value="${escapeHtml(titulo||'')}"/></div>
+      <div class="form-group"><label>Resumo</label><textarea id="m_texto">${escapeHtml(texto||'')}</textarea></div>
+      <div class="form-group"><label>Solução / explicação</label><textarea id="m_solucao" style="min-height:120px">${escapeHtml(solucao||'')}</textarea></div>
+      <div class="form-group">
+        <label style="display:flex;justify-content:space-between">Tags <button type="button" class="btn btn-sm btn-outline" onclick="openWikiTagManager()">Gerenciar</button></label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;max-height:120px;overflow:auto;padding:4px;border:1px solid var(--border);border-radius:6px">
+          ${allTags.map(tg=>`<label style="display:flex;align-items:center;gap:4px;font-size:.8rem;background:var(--bg);padding:3px 8px;border-radius:12px;cursor:pointer"><input type="checkbox" class="wiki-tag-check" value="${escapeHtml(tg)}" ${selected.includes(tg)?'checked':''}/>${escapeHtml(tg)}</label>`).join('')||'<span style="color:var(--text-muted);font-size:.8rem">Nenhuma tag. Crie em Gerenciar.</span>'}
+        </div>
+      </div>
       <div class="form-group">
         <label>Arquivos e imagens (até 50 MB cada)</label>
         <div id="wikiDropZone" style="border:2px dashed var(--border);border-radius:8px;padding:16px;text-align:center;color:var(--text-muted);cursor:pointer;background:var(--bg)">
@@ -2281,6 +2428,7 @@ function openCasoModal(id){
         <button class="btn btn-success" id="wikiSaveBtn" onclick="saveCasoModal()">Salvar</button>
       </div>
     </div>`;
+  window._wikiFormStash=null;
   const zone=document.getElementById('wikiDropZone');
   const fileInput=document.getElementById('wikiFile');
   if(zone && fileInput){
@@ -2327,9 +2475,7 @@ async function saveCasoModal(){
     const pending=(window._wikiAnexos||[]);
     const needsUpload=pending.some(a=>a && a._file);
     let anexos=[];
-    if(needsUpload){
-      showToast('Enviando arquivos...');
-    }
+    if(needsUpload) showToast('Enviando arquivos...');
     for(const a of pending){
       if(a && a._file){
         anexos.push(await uploadWikiAnexo(casoId, a));
@@ -2342,11 +2488,12 @@ async function saveCasoModal(){
     for(const rem of (window._wikiAnexosRemoved||[])){
       if(rem && rem.path) await deleteWikiStoragePath(rem.path);
     }
+    const tags=Array.from(document.querySelectorAll('.wiki-tag-check:checked')).map(el=>el.value);
     const payload={
       titulo,
       texto:document.getElementById('m_texto').value.trim(),
       solucao:document.getElementById('m_solucao').value.trim(),
-      tags:document.getElementById('m_tags').value.split(',').map(s=>s.trim()).filter(Boolean),
+      tags,
       anexos,
       updatedAt:now
     };
@@ -2359,8 +2506,9 @@ async function saveCasoModal(){
     }
     save();
     closeModal();
-    if(id) selectCaso(id); else renderCasosHome();
+    renderCasosHome();
     renderSidebar();
+    if(id) selectCaso(id);
     showToast(id?'Artigo atualizado':'Artigo criado');
   }catch(e){
     console.warn(e);
@@ -2382,6 +2530,7 @@ async function deleteCaso(id){
     if(a && a.path) await deleteWikiStoragePath(a.path);
   }
   data.casos=(data.casos||[]).filter(x=>x.id!==id);
+  if(selectedId===id){ selectedId=null; selectedType=null; }
   save();
   renderCasosHome();
   renderSidebar();
