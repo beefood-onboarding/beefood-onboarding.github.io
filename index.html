@@ -1,0 +1,2374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Onboarding BeeFood</title>
+<style>
+:root{--bg:#0b1220;--bg-card:#111827;--bg-hover:#1a2332;--border:#1f2a3d;--text:#e5e7eb;--text-muted:#94a3b8;--primary:#3b82f6;--success:#22c55e;--warning:#f59e0b;--danger:#ef4444;--accent:#22d3ee;--purple:#a855f7;--radius:10px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+#app{display:grid;grid-template-columns:340px 1fr;grid-template-rows:52px 1fr;height:100vh}
+.topbar{grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:0 12px;background:#0f172a;border-bottom:1px solid var(--border)}
+.topbar h1{font-size:.95rem;font-weight:700;white-space:nowrap;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-tabs{display:flex;gap:2px;flex-wrap:wrap;flex:1;overflow-x:auto}
+.nav-tab{background:transparent;border:none;color:var(--text-muted);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:.8rem;white-space:nowrap}
+.nav-tab:hover{background:var(--bg-hover);color:var(--text)}
+.nav-tab.active{background:var(--primary);color:#fff}
+.btn{border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:.8rem;background:var(--primary);color:#fff}
+.btn-sm{padding:4px 8px;font-size:.75rem}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-success{background:var(--success);color:#052e16}
+.btn:hover{filter:brightness(1.08)}
+.sidebar{border-right:1px solid var(--border);display:flex;flex-direction:column;background:#0c1424;overflow:hidden}
+.sidebar-tools{padding:8px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid var(--border)}
+.sidebar-tools input,.sidebar-tools select{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font-size:.8rem}
+.filters-row{display:flex;gap:4px;flex-wrap:wrap}
+.list-count{font-size:.72rem;color:var(--text-muted);padding:4px 8px}
+#listArea{flex:1;overflow-y:auto;padding:4px}
+.list-item{padding:10px 12px;border-radius:10px;cursor:pointer;margin-bottom:8px;border:1px solid var(--border);border-left:4px solid var(--primary);background:var(--bg-card);transition:background .15s,border-color .15s}
+.list-item:hover{background:var(--bg-hover);border-color:#334155}
+.list-item.active{background:#1e293b;border-color:var(--primary);box-shadow:0 0 0 1px rgba(59,130,246,.35)}
+.list-item-title{font-size:.88rem;font-weight:700;color:var(--text);line-height:1.25}
+.list-item-obs{font-size:.75rem;color:var(--text-muted);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.35}
+.list-item-meta{font-size:.72rem;color:var(--text-muted);margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.list-item-meta .code{opacity:.85}
+.list-prog{height:4px;background:#1e293b;border-radius:99px;overflow:hidden;margin-top:8px}
+.list-prog > span{display:block;height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:99px}
+.pill{display:inline-flex;align-items:center;padding:1px 8px;border-radius:99px;font-size:.68rem;font-weight:600;text-transform:lowercase}
+.pill-media{background:#1e3a5f;color:#93c5fd}
+.pill-alta,.pill-urgente{background:#7f1d1d;color:#fecaca}
+.pill-baixa{background:#14532d;color:#bbf7d0}
+.pill-status-em{background:#422006;color:#fde68a}
+.pill-status-ok{background:#14532d;color:#bbf7d0}
+.pill-status-nao{background:#1e293b;color:#94a3b8}
+.sidebar{width:100%}
+#listArea{padding:8px}
+.main{display:flex;flex-direction:column;overflow:hidden;position:relative}
+#emptyState{flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-muted)}
+#detailView{display:none;flex-direction:column;height:100%;overflow:hidden}
+.main-header{display:flex;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:#0f172a}
+.main-header h2{font-size:1.05rem}
+.main-header-meta{font-size:.75rem;color:var(--text-muted);margin-top:2px}
+.main-header-actions{display:flex;gap:5px;flex-wrap:wrap}
+.main-content{flex:1;overflow-y:auto;padding:12px 14px}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:10px}
+.info-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px}
+.info-card.wide{grid-column:1/-1}
+.info-card-label{font-size:.7rem;color:var(--text-muted);text-transform:uppercase}
+.info-card-value{font-size:.88rem;margin-top:2px;word-break:break-word}
+.section-box{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden}
+.section-head{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;cursor:pointer;font-size:.85rem;font-weight:600;user-select:none}
+.section-head:hover{background:var(--bg-hover)}
+.section-head .chevron{transition:transform .15s;color:var(--text-muted);font-size:.7rem}
+.section-head.open .chevron{transform:rotate(90deg)}
+.section-body{display:none;padding:8px 12px 12px;border-top:1px solid var(--border)}
+.section-body.open{display:block}
+.check-item{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #1a2332}
+.check-item.done .check-text{text-decoration:line-through;color:var(--text-muted)}
+.check-text{font-size:.84rem;flex:1}
+.check-note{font-size:.75rem;color:var(--text-muted);margin-top:2px}
+.progress-wrap{height:6px;background:#1e293b;border-radius:99px;overflow:hidden;margin:6px 0 12px}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:99px}
+.obs-wrap{position:relative}
+.obs-editable{min-height:64px;padding:8px 40px 8px 8px;border:1px dashed var(--border);border-radius:8px;font-size:.85rem;white-space:pre-wrap;cursor:text}
+.mic-bubble{position:absolute;right:8px;bottom:8px;width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:#0f172a;color:var(--accent);cursor:pointer;z-index:5}
+.mic-bubble.recording{background:#7f1d1d;color:#fecaca}
+.mic-popover{position:absolute;right:8px;bottom:48px;width:min(300px,calc(100% - 16px));background:#0f172a;border:1px solid var(--border);border-radius:10px;padding:8px;z-index:6;font-size:.8rem}
+.transcribe-result{max-height:90px;overflow:auto;white-space:pre-wrap;margin:4px 0}
+.history-item{font-size:.8rem;padding:6px 0;border-bottom:1px solid #1a2332}
+.history-item .time{font-size:.7rem;color:var(--text-muted)}
+.badge{display:inline-block;padding:1px 6px;border-radius:99px;font-size:.7rem}
+.badge-sla-late{background:#7f1d1d;color:#fecaca}
+.badge-sla-warn{background:#78350f;color:#fde68a}
+.badge-sla-ok{background:#14532d;color:#bbf7d0}
+.tag-chip{display:inline-block;background:#1e293b;border:1px solid var(--border);border-radius:99px;padding:2px 8px;font-size:.72rem;margin:2px;cursor:pointer}
+.tag-chip.active,.tag-chip:hover{border-color:var(--primary);color:var(--accent)}
+.treino-group-title{font-size:.72rem;font-weight:700;color:var(--accent);margin:10px 0 4px;text-transform:uppercase}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:1000;padding:12px}
+.modal-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px;width:min(520px,100%);max-height:90vh;overflow:auto}
+.form-group{margin-bottom:8px}
+.form-group label{display:block;font-size:.72rem;color:var(--text-muted);margin-bottom:2px}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font-size:.85rem}
+.form-group textarea{min-height:70px;resize:vertical}
+#toast{position:fixed;bottom:18px;right:18px;background:#1e293b;color:#fff;padding:10px 14px;border-radius:8px;border:1px solid var(--border);z-index:9999;display:none;max-width:320px;font-size:.85rem}
+.empty-msg{color:var(--text-muted);font-size:.85rem;padding:16px;text-align:center}
+.backup-banner{background:#1e3a5f;border:1px solid #2563eb;color:#dbeafe;padding:8px 12px;border-radius:8px;margin-bottom:10px;font-size:.82rem;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+
+.list-item{
+  padding:12px 14px;border-radius:12px;cursor:pointer;margin-bottom:10px;
+  border:1px solid #1e293b;border-left:4px solid var(--primary);
+  background:linear-gradient(180deg,#152033 0%,#111827 100%);
+  box-shadow:0 2px 8px rgba(0,0,0,.25);transition:transform .12s,box-shadow .12s,border-color .12s
+}
+.list-item:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.35);border-color:#334155}
+.list-item.active{border-color:var(--primary);box-shadow:0 0 0 1px rgba(59,130,246,.4),0 6px 16px rgba(0,0,0,.35);background:linear-gradient(180deg,#1a2a44 0%,#152033 100%)}
+.list-item-title{font-size:.9rem;font-weight:700;letter-spacing:-.01em}
+.list-item-obs{font-size:.76rem;color:#94a3b8;margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4}
+.list-item-meta{font-size:.7rem;color:#64748b;margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.list-prog{height:5px;background:#0f172a;border-radius:99px;overflow:hidden;margin-top:10px}
+.list-prog>span{display:block;height:100%;background:linear-gradient(90deg,#3b82f6,#22d3ee);border-radius:99px;box-shadow:0 0 8px rgba(34,211,238,.35)}
+.pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:.68rem;font-weight:600}
+.pill-media{background:#1e3a5f;color:#93c5fd}
+.pill-alta,.pill-urgente{background:#7f1d1d;color:#fecaca}
+.pill-baixa{background:#14532d;color:#bbf7d0}
+.pill-status-em{background:#422006;color:#fde68a}
+.pill-status-ok{background:#14532d;color:#bbf7d0}
+.pill-status-nao{background:#1e293b;color:#94a3b8}
+
+/* Gamification */
+.xp-hero{
+  background:linear-gradient(135deg,#1e1b4b 0%,#0f172a 50%,#042f2e 100%);
+  border:1px solid #312e81;border-radius:14px;padding:16px;margin-bottom:12px;
+  position:relative;overflow:hidden
+}
+.xp-hero::before{
+  content:'';position:absolute;right:-20px;top:-20px;width:120px;height:120px;
+  background:radial-gradient(circle,rgba(168,85,247,.25),transparent 70%);pointer-events:none
+}
+.xp-level{font-size:1.4rem;font-weight:800;background:linear-gradient(90deg,#c4b5fd,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.xp-sub{font-size:.8rem;color:#94a3b8;margin-top:2px}
+.xp-bar-wrap{height:10px;background:#0f172a;border-radius:99px;overflow:hidden;margin:12px 0 6px;border:1px solid #1e293b}
+.xp-bar{height:100%;border-radius:99px;background:linear-gradient(90deg,#a855f7,#3b82f6,#22d3ee);box-shadow:0 0 12px rgba(168,85,247,.45);transition:width .4s}
+.xp-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.xp-stat{background:rgba(15,23,42,.7);border:1px solid #1e293b;border-radius:10px;padding:8px;text-align:center}
+.xp-stat-n{font-size:1.1rem;font-weight:700;color:#e2e8f0}
+.xp-stat-l{font-size:.65rem;color:#64748b;text-transform:uppercase;margin-top:2px}
+.badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin:10px 0}
+.badge-card{
+  background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:12px 8px;text-align:center;
+  transition:transform .12s,border-color .12s
+}
+.badge-card.on{border-color:#a855f7;background:linear-gradient(180deg,#1e1b4b,#0f172a);box-shadow:0 0 12px rgba(168,85,247,.2)}
+.badge-card.off{opacity:.4;filter:grayscale(.6)}
+.badge-card:hover{transform:translateY(-2px)}
+.badge-icon{font-size:1.6rem;line-height:1}
+.badge-name{font-size:.72rem;font-weight:600;margin-top:6px}
+.badge-desc{font-size:.65rem;color:#64748b;margin-top:2px}
+.mission-card{
+  background:linear-gradient(90deg,#0c1a2e,#111827);border-left:4px solid #3b82f6;
+  border-radius:10px;padding:12px 14px;margin:10px 0
+}
+
+
+/* Light theme */
+body.theme-light{--bg:#f1f5f9;--bg-card:#ffffff;--bg-hover:#e2e8f0;--border:#cbd5e1;--text:#0f172a;--text-muted:#64748b}
+body.theme-light .topbar,body.theme-light .sidebar,body.theme-light .main-header{background:#fff}
+body.theme-light .list-item{background:linear-gradient(180deg,#fff,#f8fafc);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+body.theme-light .xp-hero{background:linear-gradient(135deg,#ede9fe,#ecfeff);border-color:#c4b5fd}
+body.theme-light .nav-tab.active{background:var(--primary);color:#fff}
+body.theme-light .obs-editable,body.theme-light .form-group input,body.theme-light .form-group select,body.theme-light .form-group textarea,
+body.theme-light .sidebar-tools input,body.theme-light .sidebar-tools select{background:#fff;color:#0f172a;border-color:#cbd5e1}
+
+/* Focus mode */
+body.focus-mode .nav-tabs{display:none}
+body.focus-mode .topbar h1::after{content:' · Foco';font-size:.75rem;opacity:.7}
+body.focus-mode #app{grid-template-columns:320px 1fr}
+
+/* Fiscal icons */
+.fiscal-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.fiscal-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;font-size:.78rem;border:1px solid var(--border);background:#0f172a}
+body.theme-light .fiscal-chip{background:#f8fafc}
+.fiscal-chip.ok{border-color:#22c55e;color:#86efac}
+.fiscal-chip.miss{border-color:#475569;color:#94a3b8}
+
+/* Week ranking */
+.week-rank{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin:8px 0 12px}
+.week-rank .xp-stat-n{font-size:1.2rem}
+
+/* Confetti flash */
+@keyframes confetti-pop{0%{transform:scale(.8);opacity:0}40%{transform:scale(1.05);opacity:1}100%{transform:scale(1);opacity:1}}
+.xp-hero.pop{animation:confetti-pop .45s ease}
+
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <h1>🐝 Onboarding</h1>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-tab="dashboard" onclick="switchTab('dashboard')">Hoje</button>
+      <button class="nav-tab" data-tab="clientes" onclick="switchTab('clientes')">Clientes</button>
+      <button class="nav-tab" data-tab="agenda" onclick="switchTab('agenda')">Agenda</button>
+      <button class="nav-tab" data-tab="treino" onclick="switchTab('treino')">Treino</button>
+      <button class="nav-tab" data-tab="scripts" onclick="switchTab('scripts')">Scripts</button>
+      <button class="nav-tab" data-tab="impostos" onclick="switchTab('impostos')">Impostos</button>
+      <button class="nav-tab" data-tab="casos" onclick="switchTab('casos')">Wiki</button>
+      <button class="nav-tab" data-tab="carreira" onclick="switchTab('carreira')">Carreira</button>
+      <button class="nav-tab" data-tab="config" onclick="switchTab('config')">Config</button>
+    </div>
+    <button class="btn btn-sm" id="btnNewMain" onclick="onNewMain()">+ Novo</button>
+    <button class="btn btn-sm btn-outline" id="btnAnalysts" onclick="openAnalystManager()" style="display:none">Analistas</button>
+  </div>
+  <aside class="sidebar">
+    <div class="sidebar-tools">
+      <input id="searchInput" placeholder="Buscar..." oninput="onSearchInput()" />
+      <div class="filters-row" id="filtersClientes">
+        <select id="statusFilter" onchange="renderSidebar()">
+          <option value="acompanhando">Acompanhando</option>
+          <option value="all">Todos ativos</option>
+          <option value="nao_iniciado">Não iniciado</option>
+          <option value="em_andamento">Em andamento</option>
+          <option value="concluido">Concluído</option>
+          <option value="meu_dia">Só meu dia</option>
+          <option value="sla_atrasado">SLA atrasado</option>
+          <option value="arquivados">Arquivados</option>
+        </select>
+        <select id="prioFilter" onchange="renderSidebar()">
+          <option value="all">Prioridade</option>
+          <option value="urgente">Urgente</option>
+          <option value="alta">Alta</option>
+          <option value="media">Média</option>
+          <option value="baixa">Baixa</option>
+        </select>
+      </div>
+    </div>
+    <div class="list-count" id="listCount">—</div>
+    <div id="listArea"></div>
+  </aside>
+  <main class="main">
+    <div id="emptyState">Selecione um item ou use as abas acima</div>
+    <div id="detailView"></div>
+  </main>
+</div>
+<div id="modal"></div>
+<div id="toast"></div>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+
+const STORAGE_KEY='beefood_onboarding_v4';
+const ANALYSTS_KEY='beefood_analysts_v1';
+const FB_CONFIG={
+  apiKey:'AIzaSyBTkIyrqsHpIWuQYo6Caf_WAo41Ay24v4I',
+  authDomain:'beefood-onboarding.firebaseapp.com',
+  projectId:'beefood-onboarding',
+  storageBucket:'beefood-onboarding.firebasestorage.app',
+  messagingSenderId:'101623415864',
+  appId:'1:101623415864:web:152c30bfe49ab08b6912cd'
+};
+const FB_COLLECTIONS=['clients','agenda','scripts','casos','trainings','manualSessions','bitrixTemplates'];
+let fbReady=false, fbApplying=false, fbMetaDirty=false, fbEntering=false, fbSecondary=null, fbBootstrapInProgress=false;
+let fbDirty={}, fbRemote={}, fbInitialDone={}, fbAuditLogs=[], fbUnsubs=[];
+let fbAnalystsReady=false, fbMetaReady=false, fbFirstSyncDone=false;
+try{
+  if(window.firebase){
+    if(!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+  }
+}catch(e){ console.warn('Firebase init', e); }
+
+function analystEmail(nome){
+  const slug=String(nome||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'.').replace(/^[.]+|[.]+$/g,'');
+  return (slug||'analista')+'@beefood-onboarding.firebaseapp.com';
+}
+function getSecondaryAuth(){
+  if(!window.firebase) return null;
+  if(!fbSecondary){
+    fbSecondary = firebase.apps.find(a=>a.name==='Secondary') || firebase.initializeApp(FB_CONFIG, 'Secondary');
+  }
+  return fbSecondary.auth();
+}
+function fbSanitize(obj){
+  try{ return JSON.parse(JSON.stringify(obj)); }catch(e){ return obj; }
+}
+function recKey(obj){
+  if(obj==null || typeof obj!=='object') return JSON.stringify(obj);
+  if(Array.isArray(obj)) return '['+obj.map(recKey).join(',')+']';
+  return '{'+Object.keys(obj).sort().map(k=>JSON.stringify(k)+':'+recKey(obj[k])).join(',')+'}';
+}
+function persistLocalOnly(){
+  const prev=fbApplying;
+  fbApplying=true;
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){}
+  try{ if(typeof savePersonalData==='function') savePersonalData(); }catch(e){}
+  fbApplying=prev;
+}
+function teamRef(){
+  return firebase.firestore().collection('team').doc('main');
+}
+
+// Analistas iniciais
+let analysts = [
+  { id: 'pedro', nome: 'Pedro', senhaLocal: '', isAdmin: true, createdAt: new Date().toISOString() }
+];
+
+try {
+  const rawA = localStorage.getItem(ANALYSTS_KEY);
+  if (rawA) analysts = JSON.parse(rawA);
+} catch(e){}
+
+function saveAnalysts(){
+  try { localStorage.setItem(ANALYSTS_KEY, JSON.stringify(analysts)); } catch(e){}
+}
+
+let currentAnalyst = null;
+
+function simpleHash(str){
+  // hash simples para uso interno (não é seguro para produção externa)
+  let h = 0;
+  for(let i=0;i<str.length;i++) h = ((h<<5)-h) + str.charCodeAt(i) | 0;
+  return 'h'+Math.abs(h);
+}
+
+function showLogin(){
+  document.getElementById('app').style.display = 'none';
+  let overlay = document.getElementById('loginOverlay');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'loginOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:#0b1220;display:flex;align-items:center;justify-content:center;z-index:9999;color:#e5e7eb';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div style="background:#111827;border:1px solid #1f2a3d;border-radius:12px;padding:28px;width:320px;max-width:90%">
+      <h2 style="margin:0 0 16px;font-size:1.1rem;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent">BeeFood Onboarding</h2>
+      <div class="form-group" style="margin-bottom:10px">
+        <label style="font-size:.75rem;color:#94a3b8">Nome</label>
+        <input id="loginNome" list="analystList" style="width:100%;background:#0b1220;border:1px solid #1f2a3d;color:#e5e7eb;padding:8px;border-radius:6px" placeholder="Seu nome" />
+        <datalist id="analystList">${analysts.map(a=>`<option value="${escapeHtml(a.nome)}">`).join('')}</datalist>
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label style="font-size:.75rem;color:#94a3b8">Senha</label>
+        <input id="loginSenha" type="password" style="width:100%;background:#0b1220;border:1px solid #1f2a3d;color:#e5e7eb;padding:8px;border-radius:6px" placeholder="Senha" />
+      </div>
+      <button class="btn" id="loginBtn" style="width:100%;background:#3b82f6" onclick="doLogin()">Entrar</button>
+      <div style="font-size:.7rem;color:#64748b;margin-top:10px;text-align:center">No primeiro acesso, use seu nome e defina a senha (mínimo 6 caracteres). Depois, um admin cadastra os demais analistas.</div>
+    </div>`;
+  overlay.style.display = 'flex';
+  const senhaEl=document.getElementById('loginSenha');
+  if(senhaEl){ senhaEl.addEventListener('keydown', ev=>{ if(ev.key==='Enter') doLogin(); }); }
+  const nomeEl=document.getElementById('loginNome');
+  if(nomeEl){ nomeEl.addEventListener('keydown', ev=>{ if(ev.key==='Enter'){ const s=document.getElementById('loginSenha'); if(s) s.focus(); } }); }
+}
+
+function authErrorMessage(err){
+  const code=err && err.code || '';
+  if(code==='auth/wrong-password' || code==='auth/invalid-credential' || code==='auth/invalid-login-credentials') return 'Senha incorreta';
+  if(code==='auth/user-not-found') return 'Analista não cadastrado. Peça para um admin cadastrar.';
+  if(code==='auth/weak-password') return 'A senha precisa ter ao menos 6 caracteres';
+  if(code==='auth/too-many-requests') return 'Muitas tentativas. Aguarde um momento e tente de novo.';
+  if(code==='auth/network-request-failed') return 'Sem conexão. Verifique a internet e tente de novo.';
+  if(code==='auth/email-already-in-use') return 'Senha incorreta';
+  return (err && err.message) ? 'Não foi possível entrar. Tente de novo.' : 'Não foi possível entrar.';
+}
+
+async function tryBootstrapAnalyst(user, nome){
+  const db=firebase.firestore();
+  const initRef=db.doc('team/main/meta/initialized');
+  const analystRef=db.doc('team/main/analysts/'+user.uid);
+  fbBootstrapInProgress=true;
+  try{
+    await db.runTransaction(async tx=>{
+      const initSnap=await tx.get(initRef);
+      if(initSnap.exists) throw new Error('already-initialized');
+      tx.set(analystRef,{
+        id:user.uid,
+        nome:nome,
+        isAdmin:true,
+        createdAt:new Date().toISOString(),
+        email:user.email||analystEmail(nome)
+      });
+      tx.set(initRef,{ at:new Date().toISOString(), by:user.uid, byNome:nome });
+    });
+    return true;
+  }catch(e){
+    return false;
+  }finally{
+    fbBootstrapInProgress=false;
+  }
+}
+
+async function doLogin(){
+  const nome=(document.getElementById('loginNome').value||'').trim();
+  const senha=document.getElementById('loginSenha').value||'';
+  if(!nome || !senha){ alert('Preencha nome e senha'); return; }
+  if(senha.length<6){ alert('A senha precisa ter ao menos 6 caracteres'); return; }
+  if(!window.firebase){ alert('Não foi possível conectar à nuvem. Recarregue a página.'); return; }
+  const btn=document.getElementById('loginBtn');
+  if(btn){ btn.disabled=true; btn.textContent='Entrando...'; }
+  const email=analystEmail(nome);
+  try{
+    try{
+      await firebase.auth().signInWithEmailAndPassword(email, senha);
+    }catch(e){
+      const code=e && e.code || '';
+      if(code==='auth/user-not-found' || code==='auth/invalid-credential' || code==='auth/invalid-login-credentials' || code==='auth/wrong-password'){
+        try{
+          const cred=await firebase.auth().createUserWithEmailAndPassword(email, senha);
+          const ok=await tryBootstrapAnalyst(cred.user, nome);
+          if(!ok){
+            try{ await cred.user.delete(); }catch(_){}
+            try{ await firebase.auth().signOut(); }catch(_){}
+            alert('Analista não cadastrado ou senha incorreta. Peça para um admin cadastrar.');
+            return;
+          }
+        }catch(e2){
+          if(e2 && e2.code==='auth/email-already-in-use'){
+            alert('Senha incorreta');
+            return;
+          }
+          throw e2;
+        }
+      }else{
+        throw e;
+      }
+    }
+    // onAuthStateChanged chama enterApp
+  }catch(err){
+    console.warn(err);
+    alert(authErrorMessage(err));
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='Entrar'; }
+  }
+}
+
+function loadPersonalData(){
+  if(!currentAnalyst) return;
+  const key = 'personal_' + currentAnalyst.id;
+  try {
+    const raw = localStorage.getItem(key);
+    if(raw){
+      const personal = JSON.parse(raw);
+      if(personal.gamification) data.gamification = personal.gamification;
+    }
+  } catch(e){}
+}
+
+function savePersonalData(){
+  if(!currentAnalyst) return;
+  const key = 'personal_' + currentAnalyst.id;
+  let prev={};
+  try { prev = JSON.parse(localStorage.getItem(key)||'{}')||{}; } catch(e){ prev={}; }
+  prev.gamification = data.gamification;
+  try { localStorage.setItem(key, JSON.stringify(prev)); } catch(e){}
+}
+
+// === SINCRONIZAÇÃO FIRESTORE ===
+let syncTimeout = null;
+function scheduleTeamSync(){
+  if(fbApplying || !fbReady || !currentAnalyst) return;
+  markSharedDirty();
+  if(syncTimeout) clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(()=>{
+    if(currentAnalyst) flushToCloud(false).catch(e=>console.warn(e));
+  }, 700);
+}
+
+function markSharedDirty(){
+  FB_COLLECTIONS.forEach(col=>{
+    const remote=fbRemote[col]||{};
+    (data[col]||[]).forEach(item=>{
+      if(!item) return;
+      if(!item.id) item.id=uid();
+      const prev=remote[item.id];
+      if(!prev || recKey(prev)!==recKey(item)){
+        fbDirty[col]=fbDirty[col]||{};
+        if(fbDirty[col][item.id]!=='delete') fbDirty[col][item.id]='upsert';
+      }
+    });
+    Object.keys(remote).forEach(id=>{
+      if(!(data[col]||[]).some(x=>x && x.id===id)){
+        fbDirty[col]=fbDirty[col]||{};
+        fbDirty[col][id]='delete';
+      }
+    });
+  });
+  const metaRemote=fbRemote._metaConfig;
+  const metaLocal={
+    scriptTagsManaged:data.scriptTagsManaged||[],
+    settings:{
+      finalIncluirFiscal:!!(data.settings&&data.settings.finalIncluirFiscal),
+      finalIncluirPosVenda:!!(data.settings&&data.settings.finalIncluirPosVenda)
+    }
+  };
+  if(!metaRemote || recKey(metaRemote.scriptTagsManaged||[])!==recKey(metaLocal.scriptTagsManaged) || recKey(metaRemote.settings||{})!==recKey(metaLocal.settings)){
+    fbMetaDirty=true;
+  }
+}
+
+async function addAudit(action, collection, recordId, title){
+  if(!window.firebase || !firebase.auth().currentUser) return;
+  const id=uid();
+  try{
+    await teamRef().collection('auditLogs').doc(id).set({
+      at:new Date().toISOString(),
+      by:firebase.auth().currentUser.uid,
+      byNome:(currentAnalyst && currentAnalyst.nome)||'',
+      action:action,
+      collection:collection||'',
+      recordId:recordId||'',
+      title:title||''
+    });
+  }catch(e){ console.warn('audit', e); }
+}
+
+async function flushToCloud(forceAll){
+  if(!window.firebase || !firebase.auth().currentUser || !currentAnalyst) return;
+  if(forceAll) markSharedDirty();
+  const team=teamRef();
+  const ops=[];
+  const audits=[];
+  FB_COLLECTIONS.forEach(col=>{
+    const dirty=fbDirty[col]||{};
+    Object.keys(dirty).forEach(id=>{
+      if(dirty[id]==='delete'){
+        ops.push({type:'delete', ref:team.collection(col).doc(id)});
+        const prev=(fbRemote[col]||{})[id];
+        audits.push({action:'delete', collection:col, recordId:id, title:(prev && (prev.nome||prev.titulo))||id});
+      }else{
+        const item=(data[col]||[]).find(x=>x && x.id===id);
+        if(!item) return;
+        const payload=fbSanitize(Object.assign({}, item, {
+          updatedAt:item.updatedAt||new Date().toISOString(),
+          updatedBy:currentAnalyst.nome
+        }));
+        ops.push({type:'set', ref:team.collection(col).doc(id), payload});
+        audits.push({action:'upsert', collection:col, recordId:id, title:item.nome||item.titulo||id});
+      }
+    });
+  });
+  if(fbMetaDirty || forceAll){
+    const payload=fbSanitize({
+      scriptTagsManaged:data.scriptTagsManaged||[],
+      settings:{
+        finalIncluirFiscal:!!(data.settings&&data.settings.finalIncluirFiscal),
+        finalIncluirPosVenda:!!(data.settings&&data.settings.finalIncluirPosVenda)
+      },
+      lastTeamSync:new Date().toISOString(),
+      updatedBy:currentAnalyst.nome
+    });
+    ops.push({type:'set', ref:team.collection('meta').doc('config'), payload});
+    fbMetaDirty=true;
+  }
+  if(!ops.length){
+    updateSyncStatus('Sincronizado', 'ok');
+    return;
+  }
+  updateSyncStatus('Sincronizando...', 'warn');
+  const CHUNK=400;
+  for(let i=0;i<ops.length;i+=CHUNK){
+    const batch=firebase.firestore().batch();
+    ops.slice(i,i+CHUNK).forEach(op=>{
+      if(op.type==='delete') batch.delete(op.ref);
+      else batch.set(op.ref, op.payload, {merge:true});
+    });
+    await batch.commit();
+  }
+  if(forceAll && audits.length>20){
+    await addAudit('sync','all','','Sincronização completa ('+audits.length+' itens)');
+  }else{
+    const byCol={};
+    audits.forEach(a=>{
+      const k=a.collection+'|'+(a.action==='delete'?'removeu':'atualizou');
+      if(!byCol[k]) byCol[k]={action:a.action, collection:a.collection, titles:[], n:0};
+      byCol[k].n++;
+      if(a.title && byCol[k].titles.length<3) byCol[k].titles.push(a.title);
+    });
+    for(const g of Object.values(byCol)){
+      const extra=g.n>g.titles.length ? ' +'+(g.n-g.titles.length) : '';
+      await addAudit(g.action, g.collection, '', (g.titles.join(', ')||g.collection)+extra);
+    }
+  }
+  fbDirty={};
+  fbMetaDirty=false;
+  data.lastTeamSync=new Date().toISOString();
+  persistLocalOnly();
+  updateSyncStatus('Sincronizado', 'ok');
+}
+
+function applyCollectionSnapshot(col, snap){
+  const remoteMap={};
+  snap.docs.forEach(d=>{ remoteMap[d.id]=Object.assign({id:d.id}, d.data()); });
+  fbRemote[col]=remoteMap;
+  fbInitialDone[col]=true;
+  const dirty=fbDirty[col]||{};
+  const localArr=data[col]||[];
+  const localMap={};
+  localArr.forEach(x=>{ if(x && x.id) localMap[x.id]=x; });
+  const merged=[];
+  const seen={};
+  Object.keys(remoteMap).forEach(id=>{
+    seen[id]=true;
+    if(dirty[id] && dirty[id]!=='delete' && localMap[id]) merged.push(localMap[id]);
+    else if(dirty[id]==='delete') return;
+    else merged.push(remoteMap[id]);
+  });
+  localArr.forEach(l=>{
+    if(!l || !l.id || seen[l.id]) return;
+    if(dirty[l.id] && dirty[l.id]!=='delete') merged.push(l);
+  });
+  data[col]=merged;
+  persistLocalOnly();
+  if(fbReady) refreshViewsIfNeeded();
+}
+
+function refreshViewsIfNeeded(){
+  const tag=(document.activeElement && document.activeElement.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='textarea'||tag==='select'||(document.activeElement&&document.activeElement.isContentEditable)) return;
+  if(refreshViewsIfNeeded._t) clearTimeout(refreshViewsIfNeeded._t);
+  refreshViewsIfNeeded._t=setTimeout(()=>{
+    try{
+      if(typeof preserveScroll==='function'){
+        preserveScroll(()=>{
+          if(typeof renderSidebar==='function') renderSidebar();
+          if(currentTab==='dashboard' && typeof renderDashboard==='function') renderDashboard();
+        });
+      }else if(typeof renderSidebar==='function') renderSidebar();
+    }catch(e){}
+  }, 250);
+}
+
+function stopTeamListeners(){
+  fbUnsubs.forEach(u=>{ try{ u(); }catch(e){} });
+  fbUnsubs=[];
+}
+
+function startTeamListeners(){
+  stopTeamListeners();
+  FB_COLLECTIONS.forEach(c=>{ fbInitialDone[c]=false; });
+  fbAnalystsReady=false;
+  fbMetaReady=false;
+  const team=teamRef();
+  FB_COLLECTIONS.forEach(col=>{
+    const unsub=team.collection(col).onSnapshot(snap=>{
+      applyCollectionSnapshot(col, snap);
+    }, err=>{
+      console.warn(err);
+      updateSyncStatus('Erro na sincronização', 'warn');
+    });
+    fbUnsubs.push(unsub);
+  });
+  fbUnsubs.push(team.collection('analysts').onSnapshot(snap=>{
+    analysts=snap.docs.map(d=>Object.assign({id:d.id}, d.data()));
+    try{ localStorage.setItem(ANALYSTS_KEY, JSON.stringify(analysts.map(a=>({id:a.id,nome:a.nome,isAdmin:!!a.isAdmin,createdAt:a.createdAt||''})))); }catch(e){}
+    fbAnalystsReady=true;
+    const btnA=document.getElementById('btnAnalysts');
+    if(btnA && currentAnalyst) btnA.style.display=currentAnalyst.isAdmin?'inline-flex':'none';
+    const box=document.getElementById('analystManagerList');
+    if(box && typeof openAnalystManager==='function' && document.getElementById('newAnalystName')){
+      // lista viva no modal, se aberto — não reabre o modal inteiro
+    }
+  }, err=>console.warn(err)));
+  fbUnsubs.push(team.collection('meta').doc('config').onSnapshot(snap=>{
+    fbMetaReady=true;
+    if(!snap.exists){ fbRemote._metaConfig=null; return; }
+    const m=snap.data()||{};
+    fbRemote._metaConfig={ scriptTagsManaged:m.scriptTagsManaged||[], settings:m.settings||{} };
+    if(m.scriptTagsManaged) data.scriptTagsManaged=m.scriptTagsManaged;
+    if(m.settings && data.settings){
+      if(m.settings.finalIncluirFiscal!=null) data.settings.finalIncluirFiscal=m.settings.finalIncluirFiscal;
+      if(m.settings.finalIncluirPosVenda!=null) data.settings.finalIncluirPosVenda=m.settings.finalIncluirPosVenda;
+    }
+    if(m.lastTeamSync) data.lastTeamSync=m.lastTeamSync;
+    persistLocalOnly();
+  }, err=>{ fbMetaReady=true; console.warn(err); }));
+  fbUnsubs.push(team.collection('auditLogs').orderBy('at','desc').limit(80).onSnapshot(snap=>{
+    fbAuditLogs=snap.docs.map(d=>Object.assign({id:d.id}, d.data()));
+    const box=document.getElementById('auditLogList');
+    if(box) box.innerHTML=renderAuditList();
+  }, err=>console.warn(err)));
+}
+
+function waitFirstSnapshots(timeoutMs){
+  return new Promise(resolve=>{
+    const start=Date.now();
+    const tick=()=>{
+      const cols=FB_COLLECTIONS.every(c=>fbInitialDone[c]);
+      if((cols && fbAnalystsReady && fbMetaReady) || Date.now()-start>(timeoutMs||15000)) resolve();
+      else setTimeout(tick, 50);
+    };
+    tick();
+  });
+}
+
+function gatherLocalMigration(){
+  const mergeIn=(col, items)=>{
+    if(!items) return;
+    data[col]=data[col]||[];
+    items.forEach(item=>{
+      if(!item) return;
+      if(!item.id) item.id=uid();
+      if(!data[col].some(x=>x && x.id===item.id)) data[col].push(item);
+    });
+  };
+  Object.keys(localStorage).forEach(k=>{
+    if(k.indexOf('personal_')!==0) return;
+    try{
+      const p=JSON.parse(localStorage.getItem(k)||'{}')||{};
+      mergeIn('clients', p.clients);
+      mergeIn('agenda', p.agenda);
+      mergeIn('trainings', p.trainings);
+      mergeIn('manualSessions', p.manualSessions);
+    }catch(e){}
+  });
+}
+
+async function maybeMigrateToCloud(){
+  const empty=FB_COLLECTIONS.every(col=>!fbRemote[col] || !Object.keys(fbRemote[col]).length);
+  if(!empty) return false;
+  gatherLocalMigration();
+  (data.clients||[]).forEach(c=>{ try{ normalizeClient(c); }catch(e){} });
+  await flushToCloud(true);
+  return true;
+}
+
+async function loadAnalystDoc(uid, retries){
+  for(let i=0;i<(retries||20);i++){
+    try{
+      const snap=await firebase.firestore().doc('team/main/analysts/'+uid).get();
+      if(snap.exists) return Object.assign({id:snap.id}, snap.data());
+    }catch(e){ console.warn(e); }
+    if(!fbBootstrapInProgress && i>=12) break;
+    await new Promise(r=>setTimeout(r, 300));
+  }
+  return null;
+}
+
+async function enterApp(user){
+  if(fbEntering) return;
+  fbEntering=true;
+  updateSyncStatus('Conectando...', 'warn');
+  try{
+    const profile=await loadAnalystDoc(user.uid, 12);
+    if(!profile){
+      try{ await firebase.auth().signOut(); }catch(e){}
+      alert('Seu acesso não está cadastrado. Peça para um admin.');
+      showLogin();
+      return;
+    }
+    currentAnalyst=profile;
+    localStorage.setItem('currentAnalystId', currentAnalyst.id);
+    loadPersonalData();
+    const overlay=document.getElementById('loginOverlay');
+    if(overlay) overlay.style.display='none';
+    document.getElementById('app').style.display='';
+    const btnA=document.getElementById('btnAnalysts');
+    if(btnA) btnA.style.display=currentAnalyst.isAdmin?'inline-flex':'none';
+    startTeamListeners();
+    await waitFirstSnapshots(15000);
+    const migrated=await maybeMigrateToCloud();
+    try{
+      ensureWikiSeed();
+      ensureBitrixTemplates();
+      ensureDefaultScripts();
+      ensureGamification();
+      bootstrapXPFromData();
+    }catch(e){ console.warn(e); }
+    if(migrated) await flushToCloud(true);
+    else { markSharedDirty(); await flushToCloud(false); }
+    fbReady=true;
+    updateSyncStatus('Sincronizado', 'ok');
+    if(typeof renderSidebar==='function') renderSidebar();
+    if(currentTab==='dashboard' && typeof renderDashboard==='function') renderDashboard();
+    else if(typeof switchTab==='function') switchTab(currentTab||'dashboard');
+  }catch(e){
+    console.warn(e);
+    updateSyncStatus('Falha ao conectar', 'warn');
+    showToast('Não foi possível carregar os dados da nuvem agora.');
+  }finally{
+    fbEntering=false;
+  }
+}
+
+async function logoutAnalyst(){
+  fbReady=false;
+  stopTeamListeners();
+  currentAnalyst=null;
+  localStorage.removeItem('currentAnalystId');
+  try{ await firebase.auth().signOut(); }catch(e){}
+  const app=document.getElementById('app');
+  if(app) app.style.display='none';
+  showLogin();
+  showToast('Você saiu');
+}
+
+function renderAuditList(){
+  if(!fbAuditLogs.length) return '<p style="font-size:.8rem;color:var(--text-muted)">Nenhuma alteração registrada ainda.</p>';
+  const lab={upsert:'atualizou',delete:'removeu',sync:'sincronizou',create:'criou'};
+  return fbAuditLogs.map(a=>{
+    const who=escapeHtml(a.byNome||'alguém');
+    const act=lab[a.action]||a.action||'alterou';
+    const col=escapeHtml(a.collection||'');
+    const title=escapeHtml(a.title||'');
+    return `<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:.78rem"><strong>${who}</strong> ${act} <span style="color:var(--text-muted)">${col}</span>${title?' — '+title:''}<div style="color:var(--text-muted);font-size:.7rem">${fmt(a.at)}</div></div>`;
+  }).join('');
+}
+
+function openAnalystManager(){
+  if(!currentAnalyst || !currentAnalyst.isAdmin){ showToast('Apenas Admin'); return; }
+  document.getElementById('modal').style.display='flex';
+  document.getElementById('modal').innerHTML = `
+    <div class="modal-box" style="max-width:420px">
+      <h3>Analistas</h3>
+      <div style="max-height:200px;overflow:auto;margin:8px 0">
+        ${analysts.map(a=>`
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
+            <span>${escapeHtml(a.nome)} ${a.isAdmin?'<span class="badge" style="background:#a855f7;color:#fff;font-size:.65rem">Admin</span>':''}</span>
+            ${a.id!==currentAnalyst.id?`<button class="btn btn-sm btn-outline" onclick="removeAnalyst('${a.id}')">Remover</button>`:''}
+          </div>`).join('')}
+      </div>
+      <div class="form-group">
+        <label>Novo analista</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <input id="newAnalystName" placeholder="Nome" style="flex:1;min-width:120px" />
+          <input id="newAnalystPass" type="password" placeholder="Senha inicial" style="flex:1;min-width:120px" />
+          <button class="btn btn-sm btn-success" onclick="addAnalyst()">+</button>
+        </div>
+        <p style="font-size:.7rem;color:var(--text-muted);margin-top:6px">A senha inicial precisa ter ao menos 6 caracteres.</p>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:10px">
+        <button class="btn btn-outline" onclick="closeModal()">Fechar</button>
+      </div>
+    </div>`;
+}
+
+async function addAnalyst(){
+  const nome=(document.getElementById('newAnalystName').value||'').trim();
+  const senha=(document.getElementById('newAnalystPass')&&document.getElementById('newAnalystPass').value)||'';
+  if(!nome) return;
+  if(!senha || senha.length<6){ showToast('Informe uma senha inicial com ao menos 6 caracteres'); return; }
+  if(analysts.some(a=>a.nome.toLowerCase()===nome.toLowerCase())){ showToast('Já existe'); return; }
+  try{
+    const secondary=getSecondaryAuth();
+    if(!secondary){ showToast('Nuvem indisponível'); return; }
+    const cred=await secondary.createUserWithEmailAndPassword(analystEmail(nome), senha);
+    await firebase.firestore().doc('team/main/analysts/'+cred.user.uid).set({
+      id:cred.user.uid,
+      nome,
+      isAdmin:false,
+      createdAt:new Date().toISOString(),
+      email:cred.user.email||analystEmail(nome)
+    });
+    try{ await secondary.signOut(); }catch(e){}
+    await addAudit('create','analysts', cred.user.uid, nome);
+    openAnalystManager();
+    showToast('Analista adicionado');
+  }catch(e){
+    console.warn(e);
+    if(e && e.code==='auth/email-already-in-use') showToast('Já existe um acesso com esse nome');
+    else if(e && e.code==='auth/weak-password') showToast('A senha precisa ter ao menos 6 caracteres');
+    else showToast('Não foi possível cadastrar o analista');
+  }
+}
+
+async function removeAnalyst(id){
+  if(!currentAnalyst || !currentAnalyst.isAdmin){ showToast('Apenas Admin'); return; }
+  if(id===currentAnalyst.id){ showToast('Você não pode remover a si mesmo'); return; }
+  const alvo=analysts.find(a=>a.id===id);
+  if(!confirm('Remover '+(alvo&&alvo.nome?alvo.nome:'este analista')+'? A pessoa perde o acesso aos dados da equipe.')) return;
+  try{
+    await firebase.firestore().doc('team/main/analysts/'+id).delete();
+    await addAudit('delete','analysts', id, (alvo&&alvo.nome)||id);
+    openAnalystManager();
+    showToast('Analista removido');
+  }catch(e){
+    console.warn(e);
+    showToast('Não foi possível remover');
+  }
+}
+
+async function syncToTeam(){
+  if(!currentAnalyst){ showToast('Faça login'); return; }
+  updateSyncStatus('Sincronizando...', 'warn');
+  try{
+    await flushToCloud(true);
+    updateSyncStatus('Sincronizado', 'ok');
+    showToast('Sincronizado com a equipe!');
+  }catch(e){
+    console.warn(e);
+    updateSyncStatus('Falha ao sincronizar', 'warn');
+    showToast('Não foi possível sincronizar agora. Tente de novo.');
+  }
+}
+
+function updateSyncStatus(text, type){
+  let el = document.getElementById('syncStatus');
+  if(!el){
+    el = document.createElement('span');
+    el.id = 'syncStatus';
+    el.style.cssText = 'font-size:.7rem;margin-left:8px;padding:2px 6px;border-radius:4px';
+    const top = document.querySelector('.topbar');
+    if(top) top.appendChild(el);
+  }
+  el.textContent = text;
+  el.style.background = type==='ok' ? 'rgba(34,197,94,.2)' : type==='warn' ? 'rgba(234,179,8,.2)' : 'transparent';
+  el.style.color = type==='ok' ? '#22c55e' : type==='warn' ? '#eab308' : '#94a3b8';
+}
+
+function exportTeamData(){
+  const teamData = {
+    version: 2,
+    updatedAt: new Date().toISOString(),
+    updatedBy: currentAnalyst ? currentAnalyst.nome : 'desconhecido',
+    clients: data.clients || [],
+    agenda: data.agenda || [],
+    scripts: data.scripts || [],
+    casos: data.casos || [],
+    trainings: data.trainings || [],
+    manualSessions: data.manualSessions || [],
+    bitrixTemplates: data.bitrixTemplates || [],
+    scriptTagsManaged: data.scriptTagsManaged || []
+  };
+  const blob = new Blob([JSON.stringify(teamData, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'beefood_team_data.json';
+  a.click();
+  showToast('Arquivo da equipe exportado');
+}
+
+function importTeamData(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const team = JSON.parse(e.target.result);
+      ['clients','agenda','scripts','casos','trainings','manualSessions','bitrixTemplates'].forEach(col=>{
+        if(team[col]) data[col]=team[col];
+      });
+      if(team.clients) data.clients=team.clients.map(c=>{ try{ return normalizeClient(c); }catch(err){ return c; } });
+      if(team.scriptTagsManaged) data.scriptTagsManaged = team.scriptTagsManaged;
+      save();
+      if(typeof flushToCloud==='function') flushToCloud(true).catch(()=>{});
+      showToast('Dados da equipe importados!');
+      if(typeof renderScriptsHome==='function') renderScriptsHome();
+      if(typeof renderSidebar==='function') renderSidebar();
+    } catch(err){ showToast('Arquivo inválido'); }
+  };
+  reader.readAsText(file);
+}
+
+async function loadFromTeam(){
+  if(!currentAnalyst){ showToast('Faça login'); return; }
+  updateSyncStatus('Carregando...', 'warn');
+  try{
+    if(!window.firebase || !firebase.auth().currentUser) throw new Error('Sem sessão');
+    const team=teamRef();
+    for(const col of FB_COLLECTIONS){
+      const snap=await team.collection(col).get();
+      applyCollectionSnapshot(col, snap);
+    }
+    const meta=await team.collection('meta').doc('config').get();
+    if(meta.exists){
+      const m=meta.data()||{};
+      if(m.scriptTagsManaged) data.scriptTagsManaged=m.scriptTagsManaged;
+      if(m.settings && data.settings){
+        if(m.settings.finalIncluirFiscal!=null) data.settings.finalIncluirFiscal=m.settings.finalIncluirFiscal;
+        if(m.settings.finalIncluirPosVenda!=null) data.settings.finalIncluirPosVenda=m.settings.finalIncluirPosVenda;
+      }
+    }
+    persistLocalOnly();
+    updateSyncStatus('Atualizado', 'ok');
+    showToast('Dados da equipe carregados!');
+    if(typeof renderScriptsHome==='function') renderScriptsHome();
+    if(typeof renderSidebar==='function') renderSidebar();
+    if(currentTab==='dashboard' && typeof renderDashboard==='function') renderDashboard();
+  }catch(e){
+    console.warn(e);
+    updateSyncStatus('Falha ao atualizar', 'warn');
+    showToast('Não foi possível atualizar agora. Tente de novo.');
+  }
+}
+
+const PESSOAL_DEFAULT=['Verificar se o cliente acessou ao sistema','Verificar se enviou o formulário CRM','Verificar cadastro do cardápio','Perguntar se tem loja no iFood para clonar cardápio','Perguntar se já possui cardápio montado para clonar','Integrar apps que o cliente for utilizar','Configurar cardápio digital (capa, logo, WhatsApp)','Confirmar formas de pagamento','Configurar horário de abertura','Confirmar endereço e área de entrega','Configurar Fiscal (se utilizar)','Cadastrar mesas/comandas/funcionários (se utilizar)','Acesso remoto: baixar e configurar BeeFood 3.0 e impressoras'];
+const ROTEIRO_DEFAULT=['Verificar formulário inicial','Acessar e verificar banco de dados','Inserir links de cardápio digital no card','Preencher dados empresa (CNPJ, Razão Social, IE)','Chamar o cliente no chat'];
+const IMPL_DEFAULT=['Verificar usuários','Configuração do sistema no computador','Teste de impressão','Inserir logo','Verificar/ajustar telefone','Horários e fuso','Gerar ou apagar mesas/comandas','Integração POS Stone','Formas de recebimento presenciais','Formas de recebimento delivery','Áreas de atendimento','Integrações marketplace','Verificar fiscal','Confirmar cadastro de produtos','Confirmar data de início / go-live'];
+const FISCAL_UF={AC:'NFCe',AL:'NFCe',AP:'NFCe',AM:'NFCe',BA:'NFCe',CE:'NFCe',DF:'NFCe',ES:'NFCe',GO:'NFCe',MA:'NFCe',MT:'NFCe',MS:'NFCe',MG:'NFCe',PA:'NFCe',PB:'NFCe',PR:'NFCe',PE:'NFCe',PI:'NFCe',RJ:'NFCe',RN:'NFCe',RS:'NFCe',RO:'NFCe',RR:'NFCe',SC:'Verificar (SC fora do padrão)',SE:'NFCe',SP:'SAT ou NFCe',TO:'NFCe'};
+const DEFAULT_BITRIX=[{id:'bx_inicio',titulo:'Bitrix — Início',texto:'Olá! Iniciamos o onboarding.\nCliente: {{nome}}\nCódigo: {{codigo}}'},{id:'bx_bloqueio',titulo:'Bitrix — Pendência',texto:'Atendimento pausado.\nCliente: {{nome}}\nMotivo: {{motivo}}'},{id:'bx_final',titulo:'Bitrix — Finalização',texto:'Onboarding finalizado.\nCliente: {{nome}}\nCódigo: {{codigo}}\nCliente apto a operar com o BeeFood.'},{id:'bx_treino',titulo:'Bitrix — Treino',texto:'Treinamento concluído.\nCliente: {{nome}}\nTipo: {{tipo}}'}];
+const DEFAULT_SCRIPTS=[
+  // === GERAL / ONBOARDING [ONB] ===
+  {titulo:'O que é o BeeFood',texto:'Seja muito bem-vindo ao BeeFood! O BeeFood é um sistema de gestão completo para seu estabelecimento. Com ele você gerencia em um único lugar o seu PDV de balcão, controle de mesas e comandas, cardápio digital para delivery, integração com marketplaces (iFood, Keeta, 99Food), bot de atendimento via WhatsApp, impressão por setores na cozinha, aplicativo do entregador e emissão fiscal.\n\nVamos começar os primeiros passos para deixar sua operação pronta para faturar?',tags:['geral','onboarding']},
+  {titulo:'Sondagem inicial de operação',texto:'Notei que você já iniciou algumas configurações no sistema! Antes de avançarmos com as ativações, me conta um pouquinho sobre como funciona a sua operação hoje:\n\n1. Sua loja é focada apenas em Delivery/Retirada ou você também atende presencialmente com consumo no local (mesas/comandas)?\n2. Sobre as entregas, você trabalha com entregadores próprios ou utiliza a entrega parceira das plataformas (ex: Entrega Fácil do iFood)?\n\nCom essas respostas vamos ajustar o roteiro perfeito para a sua realidade!',tags:['geral','onboarding']},
+  {titulo:'Dia da instalação (preparativos)',texto:'Para aproveitarmos ao máximo o nosso momento de implantação, é muito importante que você deixe preparado ao lado do computador:\n1. O computador da operação ligado à internet.\n2. Suas impressoras térmicas conectadas por cabo ou rede e testadas no Windows.\n3. Seus dados de acesso aos portais de integração (iFood, Keeta, 99Food) e ao WhatsApp da loja.\n4. Seus dados de CNPJ, Inscrição Estadual e Certificado Digital (caso vá emitir cupom fiscal).\n5. Um responsável pela operação para acompanhar a orientação.\n\nAssim que estiver com tudo pronto aí na loja, é só me avisar aqui para começarmos!',tags:['geral','instalação']},
+  {titulo:'Oferecer e agendar treinamento operacional',texto:'Estou entrando em contato para saber como estão indo as coisas por aí e se deu tudo certo com o início das operações no sistema!\n\nCaso tenha surgido qualquer dúvida nesse início ou se quiser alinhar algum ponto com a sua equipe, podemos agendar um treinamento ao vivo.\n\nVocê prefere realizar esse treinamento no período da manhã ou da tarde?',tags:['geral','onboarding']},
+  {titulo:'Avançar etapas da implantação',texto:'Vi por aqui que os produtos já estão cadastrados no seu cardápio! Parabéns por essa etapa! 🎉\n\nAgora podemos seguir para os próximos passos. O que fica melhor para você avançarmos agora?\n1. Ativação das Integrações de Marketplaces (iFood, Keeta, 99Food).\n2. Configuração e teste das Impressoras da Cozinha/Bar.\n3. Configuração do Módulo Fiscal (NFC-e / NF-e).\n\nMe avise qual dessa etapas prefere priorizar hoje!',tags:['geral','onboarding']},
+  {titulo:'Checagem de cliente que dispensou onboarding',texto:'Passando para saber se você está conseguindo usar o sistema tranquilamente no seu dia a dia!\n\nCaso tenha surgido qualquer dúvida durante o processo de uso ou queira revisar algum recurso específico (como impressoras, cardápio ou financeiro), podemos marcar um treinamento rápido.\n\nSe precisar de qualquer apoio, é só me chamar por aqui!',tags:['geral','onboarding']},
+  {titulo:'Go-live (entrada em operação real)',texto:'Hoje é o grande dia do seu Go-Live, quando você começa a operar oficialmente com o BeeFood!\n\nAntes de abrir as portas ou o delivery hoje, recomendo fazermos um checklist rápido juntos:\n1. Realize um pedido de teste no PDV e verifique a impressão na cozinha.\n2. Faça o teste de abertura de caixa e lançamento do troco inicial.\n3. Se usar cardápio digital ou WhatsApp, faça um teste pelo celular para checar a chegada do pedido.\n\nEstou por aqui acompanhando você durante esta primeira operação. Qualquer dúvida na rotina, me chame!',tags:['geral','go-live']},
+  {titulo:'Pós-venda D+7 e D+30',texto:'Olá! Passando para saber como está sendo a rotina da sua loja com o BeeFood! 😊\n\n- Os pedidos estão caindo e imprimindo certinho nos setores de produção?\n- A equipe está conseguindo operar o caixa e os relatórios com facilidade?\n\nAgora que a rotina básica já está dominada, se quiser explorar recursos avançados (como controle de estoque por insumos ou campanhas no WhatsApp), estou à disposição para agendarmos!',tags:['geral','pós-venda']},
+
+  // === CARDÁPIO [CARD] ===
+  {titulo:'Opções de cadastro do cardápio',texto:'Para você cadastrar os seus produtos no BeeFood, temos três formas bem práticas disponíveis:\n1. Importação via iFood: o sistema puxa automaticamente as fotos, nomes e preços direto do seu link do iFood.\n2. Leitura por I.A. (PDF ou Fotos): você envia a imagem ou PDF do seu cardápio e a nossa I.A. digitaliza e organiza as categorias e adicionais.\n3. Planilha Excel: você preenche a nossa planilha modelo e importa tudo de uma vez.\n\nQual dessas opções você prefere utilizar para começarmos?',tags:['cardápio']},
+  {titulo:'Migração de sistemas concorrentes (Saipos / Anota Aí)',texto:'Se você utiliza sistemas como Saipos ou Anota Aí, você pode extrair seu cardápio facilmente para a nossa I.A. cadastrar no BeeFood!\n\nComo você pode fazer:\n1. Abra o seu cardápio web antigo no navegador do computador.\n2. Pressione as teclas \'Ctrl + P\' (ou clique no menu do navegador em Imprimir).\n3. Na opção de impressora, selecione \'Salvar como PDF\' e salve o arquivo no seu computador.\n4. Envie esse arquivo PDF aqui para nós ou suba no painel do BeeFood em \'Cardápio > Importar via I.A.\'.\n\nA nossa tecnologia lerá os produtos, preços e grupos de opções para você conferir!',tags:['cardápio']},
+  {titulo:'Acompanhamento de cadastro do cardápio',texto:'Vi que você iniciou a etapa de cadastro do cardápio!\n\nVocê conseguiu realizar essa etapa por aí ou teve alguma dúvida ou dificuldade na hora de cadastrar os produtos e complementos?\n\nMe avise por aqui se precisar de ajuda para organizarmos essa etapa juntos!',tags:['cardápio']},
+  {titulo:'Cardápio digital e link da loja',texto:'O seu Cardápio Digital é o seu canal próprio de vendas sem taxas!\n\nPara você configurar e personalizar a sua página:\n1. Acesse \'Configurações > Cardápio Digital\'.\n2. Faça o upload da sua Logomarca e Banner de topo.\n3. Defina o seu Link Exclusivo (ex: beefood.com.br/sualoja).\n4. Escolha as formas de pagamento aceitas e habilite as categorias que ficarão visíveis online.\n\nVocê pode colar esse link na bio do seu Instagram ou enviar no WhatsApp. Vamos personalizar sua página agora?',tags:['cardápio']},
+  {titulo:'Horários de atendimento e pausa rápida',texto:'Você tem controle total sobre quando seu cardápio recebe pedidos!\n\nPara configurar seus horários e pausas:\n1. Acesse \'Cardápio Digital > Horários de Funcionamento\' e marque as faixas de horário de cada dia da semana. O cardápio abrirá e fechará sozinho nos horários programados.\n2. Se a cozinha apertar ou um ingrediente acabar durante o expediente, use o botão \'Pausa Rápida\' no painel para pausar um produto específico ou fechar a loja temporariamente com 1 clique.\n\nFicou clara a diferença entre o horário programado e a pausa rápida?',tags:['cardápio']},
+  {titulo:'Áreas e taxas de entrega',texto:'Para o seu cardápio digital cobrar a taxa de entrega correta, você pode escolher dois modelos:\n- Por Bairros: em \'Configurações > Entregas > Por Bairro\', você cadastra os nomes dos bairros e digita o valor fixo de cada um.\n- Por Raio (Distância em KM): em \'Configurações > Entregas > Por Raio\', você define o valor cobrado por quilômetro até a casa do cliente.\n\nQual desses dois formatos você prefere utilizar na sua região?',tags:['cardápio']},
+  {titulo:'Pizzaria: vários sabores e maior preço',texto:'Se você opera uma pizzaria ou trabalha com produtos divididos em frações (ex: metade/metade), o sistema faz o cálculo automático para você.\n\nPara definir essa regra:\n1. Acesse \'Cardápio > Configurações de Pizza\'.\n2. Cadastre os tamanhos (ex: Broto 4 fatias, Grande 8 fatias).\n3. Selecione como o preço final será calculado: \'Cobrar pela Maior Meia\' ou \'Cobrar Valor Proporcional\'.\n4. Cadastre os sabores e vincule aos tamanhos correspondentes.\n\nQual é a regra de cobrança de sabores fracionados que você utiliza hoje na sua loja?',tags:['cardápio']},
+
+  // === INTEGRAÇÕES [INT] ===
+  {titulo:'Centralização de delivery e status de pedidos',texto:'A tela de Delivery do BeeFood funciona como a sua central única de expedição!\n\nComo funciona na prática:\n- Todos os pedidos vindos do iFood, 99Food, Keeta e do seu Cardápio Digital caem na mesma tela.\n- Você não precisa abrir o gestor de pedidos de cada plataforma para mudar o status de preparo.\n- Sempre que você atualizar o status no BeeFood (ex: clicar em \'Em Preparo\' ou \'Saiu para Entrega\'), o BeeFood envia essa atualização automaticamente para o iFood, 99Food ou Keeta!\n\nIsso traz muito mais agilidade para a sua equipe no pico do movimento!',tags:['integrações']},
+  {titulo:'Integração iFood e vínculo de produtos',texto:'Com a integração do iFood, os pedidos do app entram direto no BeeFood. Porém, para o sistema saber o que imprimir na cozinha e o que baixar do estoque, você precisará fazer o \'Vínculo de Produtos\'.\n\nPor que o vínculo é necessário?\nO sistema não adivinha que dois produtos são iguais se o nome estiver levemente diferente (exemplo: na BeeFood cadastrado como \'Marmita de Soja\' e no iFood como \'Marmita Soja\').\n\nComo você faz esse vínculo no painel:\n1. Acesse no BeeFood o menu \'Integrações > iFood > Mapeamento de Produtos\'.\n2. Relacione cada produto do iFood ao seu produto correspondente cadastrado na BeeFood.\n3. Faça o mesmo na aba \'Mapeamento de Pagamentos\'.\n\nQuer que eu te mostre a tela de mapeamento para você fazer o primeiro vínculo?',tags:['integrações','ifood']},
+  {titulo:'Entrega Fácil iFood',texto:'O Entrega Fácil permite solicitar motoboys parceiros da frota do iFood para entregar os pedidos do seu Cardápio Digital ou WhatsApp!\n\nComo você vai configurar e utilizar:\n1. No Portal do Parceiro iFood: vá em \'Serviços > Entrega Sob Demanda / Entrega Fácil\' e confirme se o serviço está ATIVO.\n2. No BeeFood: cadastre suas taxas de entrega em \'Configurações > Entregas\' com valores semelhantes aos do iFood. (Vale lembrar que o iFood pode aplicar taxas dinâmicas em dias de chuva ou horários de pico, cobradas diretamente por eles).\n3. Para chamar o motoboy: quando receber o pedido no BeeFood, abra a comanda, vá na etapa \'Adicionar Entregador\' e selecione \'Solicitar Motoboy Entrega Fácil\'.\n\nO iFood localizará o entregador mais próximo e atualizará o rastreio na sua tela. Vamos verificar se o serviço já está ativo no seu portal do iFood?',tags:['integrações','ifood']},
+  {titulo:'Integrações Keeta e 99Food',texto:'Para você integrar a Keeta e a 99Food ao seu sistema BeeFood:\n\n- Para a Keeta: acesse \'Integrações > Keeta\' no BeeFood e insira o seu Keeta ID, e-mail de login (no formato @m.meet.com) e a senha enviada no e-mail de boas-vindas da Keeta.\n- Para a 99Food: acesse seu portal da 99Food, copie o seu \'Store ID\' em Perfil da Loja e cole no BeeFood em \'Integrações > 99Food\'.\n\nConseguindo preencher esses dados, seus pedidos dessas duas plataformas caindo juntos na sua tela de produção!',tags:['integrações']},
+  {titulo:'Bot de atendimento e boletim diário no WhatsApp',texto:'O módulo de WhatsApp do BeeFood possui duas funções incríveis para o seu negócio:\n\n1. Bot de Atendimento: responde seus clientes instantaneamente com o link do cardápio digital. Para ativar, vá em \'Módulos > Bot WhatsApp\' e leia o QR Code com a câmera do seu WhatsApp em \'Dispositivos Conectados\'.\n2. Boletim Diário: envia um resumo das vendas do dia no WhatsApp dos sócios ao fechar o caixa. Basta cadastrar os números em \'Módulos > Boletim WhatsApp\'.\n\nPodemos gerar o QR Code na tela para você conectar o WhatsApp da loja agora?',tags:['integrações','whatsapp']},
+  {titulo:'TEF Stone (pagamento integrado no caixa)',texto:'Com o TEF Stone configurado no seu caixa, as cobranças de cartão vão automáticas para o PinPad sem digitação manual de valores.\n\nComo validar a comunicação no seu computador:\n1. Certifique-se de que o programa AutoTEF está ativo no caminho C:\\autotef.\n2. No BeeFood, acesse \'Configurações > PDV > TEF Stone\'.\n3. Insira o seu StoneCode e informe a porta COM do PinPad (ex: COM3).\n4. Clique em \'Testar Comunicação\'.\n\nAssim que o PinPad exibir a mensagem de teste aprovado, seu caixa estará liberado para receber via TEF!',tags:['integrações','pagamentos']},
+
+  // === PRESENCIAL / PDV [PDV] ===
+  {titulo:'PDV / vendas de balcão (takeaway)',texto:'O módulo PDV é focado na agilidade de atendimento no balcão!\n\nComo você vai operar uma venda rápida:\n1. Na tela principal do PDV, clique nos produtos ou digite o código de atalho.\n2. Selecione a forma de pagamento (Dinheiro, Pix, Cartão).\n3. Insira o valor recebido caso vá calcular o troco automático.\n4. Clique em \'Finalizar Venda\'. O sistema imprimirá a via do cliente e a comanda de produção ao mesmo tempo.\n\nQuer fazer uma venda de teste no balcão para praticar a sequência de atalhos?',tags:['presencial']},
+  {titulo:'Abertura, sangria e fechamento de caixa',texto:'A gestão de caixa garante que todas as entradas e saídas de valores do dia fiquem auditadas.\n\nComo funciona a rotina no sistema:\n- Abertura de Caixa: no início do turno, acesse \'Caixa > Abrir\' e digite o valor de troco inicial colocado na gaveta.\n- Sangria: quando retirar dinheiro do caixa para pagar um fornecedor ou guardar no cofre, acesse \'Caixa > Sangria\', digite o valor e a justificativa.\n- Fechamento Cego: ao fim do turno, acesse \'Caixa > Fechar\'. O operador digita o total contado fisicamente na gaveta sem ver o valor do sistema, garantindo um fechamento 100% auditável.\n\nFicou clara a diferença entre sangria e fechamento cego de caixa?',tags:['presencial']},
+  {titulo:'Mesas, comandas e fiado',texto:'O módulo de Salão e Contas a Receber permite organizar todo o consumo interno e vendas a prazo do seu estabelecimento:\n\n- Para Salão: acesse \'Mesas\', abra a conta desejada e lance os itens. O sistema imprime as comandas na cozinha e calcula a taxa de serviço (ex: 10%) no fechamento.\n- Para Fiado/Venda a Prazo: no momento do pagamento, selecione a opção \'Fiado\', escolha o cliente pré-cadastrado no sistema e confirme. O débito ficará registrado na ficha do cliente para baixa futura em \'Contas a Receber\'.\n\nQuer cadastrar uma mesa ou testar um lançamento a prazo no sistema?',tags:['presencial']},
+
+  // === IMPRESSÃO [IMP] ===
+  {titulo:'Cadastro e configuração de impressoras por setor',texto:'Para que suas comandas de produção saiam automaticamente no setor correto (ex: bebidas no bar, lanches na cozinha), você configurará o direcionamento por categorias.\n\nComo você vai fazer:\n1. Certifique-se de que a impressora está imprimindo a página de teste do Windows.\n2. No BeeFood, acesse \'Configurações > Impressão > Cadastrar Impressora\' e selecione o dispositivo.\n3. Vá na aba \'Mapeamento de Setores\' e vincule cada categoria à sua impressora de destino (ex: Bebidas -> Bar; Hambúrgueres -> Cozinha).\n4. Ative a chave \'Impressão Automática ao Aceitar Pedido\'.\n\nSe a sua impressora ainda não estiver instalada no Windows, posso te orientar por acesso remoto para deixarmos tudo testado! Quando fica bom para conectarmos?',tags:['impressão']},
+
+  // === ESTOQUE [EST] ===
+  {titulo:'Ordem recomendada de cadastro e controle de estoque',texto:'Para o seu controle de estoque funcionar perfeitamente e sem divergências, recomendamos seguir esta ordem exata de cadastro:\n\n1. Insumos (Matéria-Prima): primeiro, cadastre os ingredientes brutos em \'Estoque > Insumos\' (ex: carnes, verduras, molhos base, temperos).\n2. Produtos Prontos: em \'Cardápio > Produtos\', cadastre os itens de revenda direta que não possuem preparo (ex: refrigerantes, águas, cervejas).\n3. Receitas (Produção Interna): se você produz algo em lote na loja (ex: um molho especial), vá em \'Estoque > Receitas\'. Cadastre os insumos utilizados, as quantidades e quanto a receita rende (ex: rende 5kg de molho).\n4. Lançamento de Produção: quando a cozinha preparar esse lote (ex: fez 5kg de molho hoje), vá em \'Estoque > Produção\' e lance a quantidade. O sistema dará baixa nos insumos primários automaticamente.\n5. Ficha Técnica do Prato: por fim, em \'Cardápio > Produtos > Ficha Técnica\', informe quanto de cada insumo ou receita vai em 1 porção vendida (ex: 1 porção de Yakissoba usa 200g de acelga e 50g do molho produzido).\n\nDessa forma, o BeeFood controlará o saldo de matérias-primas, as produções internas e a baixa de ingredientes por prato vendido no caixa ou delivery!\n\nFicou clara essa sequência de cadastro para a sua cozinha?',tags:['estoque']},
+  {titulo:'Estoque simples vs estoque avançado',texto:'Você pode gerenciar o seu estoque no BeeFood de duas formas:\n\n- Estoque Simples: ideal para bebidas e revenda. Você digita a quantidade inicial e o sistema desconta 1 unidade a cada venda finalizada no PDV.\n- Estoque Avançado (XML e Inventário): permite dar entrada em notas fiscais de fornecedores subindo o arquivo XML em \'Estoque > Entrada por XML\' (o sistema atualiza o custo médio e saldo sozinho) e realizar acertos de perdas através do \'Inventário de Estoque\'.\n\nQual desses dois níveis de estoque você deseja implementar na sua loja primeiro?',tags:['estoque']},
+
+  // === FISCAL [FIS] ===
+  {titulo:'Configuração fiscal e dados de certificado digital',texto:'Para que o BeeFood possa emitir seus cupons fiscais (NFC-e) ou notas de venda (NF-e), você precisará cadastrar as credenciais da sua empresa.\n\nComo preencher no painel:\n1. Acesse \'Configurações > Módulo Fiscal > Certificado Digital\'.\n2. Importe o arquivo do seu Certificado Digital A1 (.PFX ou .P12) e digite a senha.\n3. Insira o seu código CSC e o ID Token (emitidos no site da SEFAZ pelo seu contador).\n4. Clique em \'Validar e Salvar\'.\n\nVocê já possui o arquivo do Certificado A1 salvo no seu computador para realizarmos o upload?',tags:['fiscal']},
+  {titulo:'Consulta de série e último número de nota emitida',texto:'Para deixarmos a sua emissão fiscal configurada sem rejeições na SEFAZ, preciso confirmar uma informação importante:\n\nVocê já emitia nota fiscal em outro sistema ou este será o seu primeiro sistema para emissão de notas?\n\n- Se já emitia antes: vou precisar confirmar com você (ou com o seu contador) qual é o Número da Série e qual foi o Número da Última Nota emitida no sistema antigo, para colocarmos o próximo número correto aqui no BeeFood.\n- Se vai começar do zero agora: podemos iniciar direto com a Série 1 e a Nota número 1.\n\nVocê prefere verificar essa informação no seu sistema antigo ou nos passar o contato do seu contador para alinharmos?',tags:['fiscal']},
+  {titulo:'Parametrização tributária (NCM, CFOP) e emissão de teste',texto:'Após cadastrar o certificado e os números de nota, vinculamos a tributação nos seus produtos (NCM e CFOP) para transmitir o primeiro cupom de teste.\n\nComo proceder:\n1. Em \'Cardápio > Categorias\', preencha o código NCM e CFOP indicados pelo seu contador.\n2. No PDV, realize uma venda de teste no valor de R$ 1,00 com a opção \'Emitir NFC-e\' marcada.\n3. O BeeFood transmitirá a nota para a SEFAZ e imprimirá o cupom com o QR Code fiscal.\n\nSe precisar de auxílio com o cardápio ou impressoras enquanto aguarda os dados fiscais do contador, é só me chamar por aqui!',tags:['fiscal']},
+
+  // === MARKETING [MKT] ===
+  {titulo:'Cupons de desconto e campanhas de CRM',texto:'O módulo de Marketing do BeeFood é excelente para atrair novos clientes e reativar quem não compra há algum tempo!\n\nVocê pode criar duas ações principais:\n1. Cupons de Desconto: em \'Food Marketing > Cupons\', crie códigos promocionais (ex: PRIMEIRACOMPRA ou FRETEGRATIS) com valor mínimo de pedido e validade.\n2. Campanhas de CRM: em \'Food Marketing > CRM\', filtre clientes inativos há mais de 30 dias e dispare uma mensagem no WhatsApp com o link do seu cardápio e um cupom especial.\n\nQuer elaborar a sua primeira campanha de reativação para este final de semana?',tags:['marketing']},
+
+  // === TROUBLESHOOTING [SUP] ===
+  {titulo:'Diagnóstico: pedido não saiu na impressora da cozinha',texto:'Se um pedido entrou no sistema mas não saiu impresso na cozinha, siga estes passos para identificar o motivo:\n\n1. Verifique se o Caixa do dia está Aberto (se o caixa estiver fechado, a produção não imprime).\n2. Verifique se a impressora está ligada, com papel e sem luz de erro acesa.\n3. Confirme se o aplicativo \'BeeFood Print\' está aberto e conectado na barra de tarefas do Windows.\n4. Vá em \'Configurações > Impressão\' e confirme se a categoria do produto vendido está vinculada àquela impressora.\n5. No painel de pedidos, clique no pedido e selecione \'Reimprimir Comanda\'.\n\nConseguiu verificar se o aplicativo BeeFood Print estava ativo no seu computador?',tags:['troubleshooting','impressão']},
+  {titulo:'Diagnóstico: pedido do iFood não caiu no BeeFood',texto:'Se os pedidos do iFood pararam de entrar automaticamente na sua tela do BeeFood, faça estas checagens:\n\n1. Confirme se o Caixa do BeeFood está aberto no computador principal.\n2. Acesse \'Integrações > iFood\' e verifique se a chave \'Captura de Pedidos\' está ATIVADA.\n3. Se a integração constar como desconectada, clique em \'Reconectar\', gere um novo Código de Autorização no Portal do Parceiro iFood e cole no BeeFood.\n4. Clique no botão \'Sincronizar Pedidos Pendentes\' para puxar as vendas represadas.\n\nO status da sua integração voltou a aparecer como conectado no painel?',tags:['troubleshooting','ifood']},
+  {titulo:'Diagnóstico: loja aparece como fechada no cardápio digital',texto:'Se o seu Cardápio Digital está aparecendo como \'Fechado\' para os seus clientes enquanto sua loja está aberta, verifique estes 3 pontos no painel:\n\n1. Acesse \'Cardápio Digital > Status\' e confirme se a \'Pausa Rápida / Fechar Loja\' não foi ativada por engano.\n2. Acesse \'Cardápio Digital > Horários\' e confirme se a grade de horários do dia de hoje está preenchida corretamente.\n3. Verifique se o fuso horário do seu computador/cidade está correto nas configurações do sistema.\n\nApós ajustar, atualize o link do cardápio no seu celular. A loja voltou a exibir a opção \'Aberta\'?',tags:['troubleshooting','cardápio']}
+];
+const WIKI_SEED=[{titulo:'Antivírus bloqueando download',texto:'Instalador bloqueado.',solucao:'Exclusão de pasta + redownload + admin. Manter antivírus com exclusões.',tags:['antivírus','download','instalação']},{titulo:'Impressora não imprime no BeeFood',texto:'Windows imprime, BeeFood não.',solucao:'Caixa aberto, setor com impressora, spooler, driver oficial, conexão direta.',tags:['impressão','operacional']},{titulo:'iFood — integrar',texto:'Vincular loja.',solucao:'Marketplace > autorizar > formas pagamento > pedido teste > vínculo itens.',tags:['ifood','marketplace']},{titulo:'TEF Stone completo',texto:'Pinpad Stone.',solucao:'C:\\autotef, Service na Inicializar, StoneCode+porta, teste. Status 400: suporte AutoTEF.',tags:['tef','stone']},{titulo:'NFC-e rejeição 464',texto:'Hash QR diverge.',solucao:'CSC/ID iguais à SEFAZ, ID 6 dígitos, cuidado B/8 S/5 O/0.',tags:['fiscal','nfce','csc']},{titulo:'NFC-e duplicidade',texto:'Numeração travada.',solucao:'Consultar chave em Gestão > NFCe até 100 Autorizado.',tags:['fiscal','nfce']},{titulo:'Pedido marketplace não aparece',texto:'App tem pedido, BeeFood não.',solucao:'Caixa, captura, loja marcada, reconectar, teste.',tags:['marketplace','operacional']},{titulo:'Certificado A1',texto:'Arquivo pfx.',solucao:'Backup, configurar no BeeFood, anotar validade, renovar antes.',tags:['fiscal','certificado']},{titulo:'SAT / MFe',texto:'UF exige SAT/MFe.',solucao:'Confirmar com contador, equipamento ativo, cupom teste.',tags:['fiscal','sat']},{titulo:'Área de entrega por raio',texto:'Frete por km.',solucao:'Cardápio > áreas por km + desenho livre.',tags:['delivery','área-de-entrega']},{titulo:'App garçom tela estranha',texto:'Layout quebrado no Android.',solucao:'Fonte padrão e tamanho menor nas configs do celular.',tags:['garçom','android']},{titulo:'Caixa com divergência',texto:'Fechamento não bate.',solucao:'Cancelamentos, sangrias, pedidos abertos, testes cancelados.',tags:['caixa','operacional']}];
+const XP_RULES=[{id:'client_create',label:'Cadastrar',xp:5},{id:'client_finalize',label:'Go-live',xp:50},{id:'task_done',label:'Tarefa',xp:2},{id:'training_start',label:'Iniciar treino',xp:5},{id:'training_done',label:'Treino 100%',xp:40},{id:'wiki_create',label:'Wiki',xp:25},{id:'script_use',label:'Script',xp:1}];
+const LEVEL_XP=[{nivel:1,nome:'Operador',min:0},{nivel:2,nome:'Analista',min:200},{nivel:3,nome:'Especialista',min:600},{nivel:4,nome:'Referência',min:1200},{nivel:5,nome:'Lenda',min:2500}];
+const BADGE_DEFS=[{id:'first_blood',nome:'Primeiro go-live',desc:'1 go-live',icon:'🚀',check:m=>m.goLives>=1},{id:'closer_5',nome:'Closer',desc:'5 go-lives',icon:'🎯',check:m=>m.goLives>=5},{id:'trainer',nome:'Treinador',desc:'3 treinos 100%',icon:'🎓',check:m=>m.trainingsDone>=3},{id:'wiki_hero',nome:'Guardião Wiki',desc:'3 artigos',icon:'🧠',check:m=>m.wikiOwn>=3},{id:'streak_3',nome:'Sequência 3',desc:'3 dias',icon:'🔥',check:m=>m.streak>=3},{id:'fiscal_ready',nome:'Olho fiscal',desc:'5 cards fiscal',icon:'🧾',check:m=>m.fiscalFilled>=5},{id:'xp_500',nome:'500 XP',desc:'500 XP',icon:'⭐',check:m=>m.xp>=500}];
+const CARREIRA={missao:'Garantir onboarding seguro: sistema ok, treino feito, fiscal/TEF/impressão validados e card com histórico.',roteiroDia:['Abrir Hoje: alertas e meu dia','Priorizar urgente → andamento','Ler card antes do remoto','Checklist + gravação + histórico','Pendências ou finalização','5 min na Wiki se aprendeu algo'],niveis:[{nome:'N1 Operador',objetivo:'Roteiro padrão com supervisão.',faz:['Checklist','Remoto básico','Impressora Windows','Cardápio básico']},{nome:'N2 Analista',objetivo:'Completo + iFood autonomia.',faz:['Delivery+Mesas','iFood vínculo','Áreas entrega','QR mesa']},{nome:'N3 Especialista',objetivo:'Fiscal, TEF, casos difíceis.',faz:['NFC-e','Stone','Multi impressoras','Wiki']},{nome:'N4 Líder',objetivo:'Padrão do time e formação.',faz:['SLA','Revisão cards','Trilha 30 dias','Métricas']}],errosComuns:[{erro:'Treinar sem caixa',evita:'Caixa sempre primeiro'},{erro:'Finalizar sem impressão',evita:'Pedido teste real'},{erro:'Fiscal sem anotar',evita:'UF/CSC no card'},{erro:'Card vazio',evita:'Histórico ao fim de cada bloco'}]};
+
+let data={clients:[],agenda:[],scripts:[],trainings:[],casos:[],manualSessions:[],bitrixTemplates:null,gamification:null,lastBackupAt:null,wikiTagFilter:'',scriptTagFilter:'',scriptTagsManaged:[],settings:{sound:true,theme:'dark',finalIncluirFiscal:false,finalIncluirPosVenda:false}};
+let currentTab='dashboard',selectedId=null,selectedType=null,isRecording=false,recognition=null;
+try{const raw=localStorage.getItem(STORAGE_KEY)||localStorage.getItem('beefood_onboarding_v3');if(raw)data=Object.assign(data,JSON.parse(raw));}catch(e){}
+if(!data.settings) data.settings={sound:true,theme:'dark',finalIncluirFiscal:false,finalIncluirPosVenda:false};
+if(data.settings.finalIncluirFiscal==null) data.settings.finalIncluirFiscal=false;
+if(data.settings.finalIncluirPosVenda==null) data.settings.finalIncluirPosVenda=false;
+if(data.settings.theme==='light') document.body.classList.add('theme-light');
+
+
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}catch(e){showToast('Storage cheio?')}try{if(typeof savePersonalData==='function')savePersonalData()}catch(e){}if(!fbApplying && currentAnalyst && typeof scheduleTeamSync==='function') scheduleTeamSync();}
+function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function fmt(iso){if(!iso)return '—';try{return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}catch(e){return String(iso)}}
+function preserveScroll(fn){
+  const el=document.querySelector('.main-content');
+  const y=el?el.scrollTop:0;
+  const x=window.scrollY||0;
+  fn();
+  requestAnimationFrame(()=>{
+    const el2=document.querySelector('.main-content');
+    if(el2) el2.scrollTop=y;
+    window.scrollTo(0,x);
+  });
+}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._tm);t._tm=setTimeout(()=>t.style.display='none',2800)}
+function daysSince(iso){if(!iso)return 999;return Math.floor((Date.now()-new Date(iso).getTime())/86400000)}
+function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function mapTasks(list){return (list||[]).map(t=>({id:uid(),texto:t,done:false}))}
+
+function createClient(d){const now=new Date().toISOString();return{id:uid(),nome:d.nome||'',codigo:d.codigo||'',telefone:d.telefone||'',prioridade:d.prioridade||'media',tipo:d.tipo||'completo',tags:d.tags||[],cor:d.cor||'#3b82f6',observacoes:d.observacoes||'',slaDate:d.slaDate||'',uf:d.uf||'',modeloFiscal:d.modeloFiscal||'',cscId:d.cscId||'',cscToken:d.cscToken||'',certificadoTipo:d.certificadoTipo||'',certificadoValidade:d.certificadoValidade||'',stoneCode:d.stoneCode||'',pinpadPorta:d.pinpadPorta||'',posVendaD7:false,posVendaD30:false,handoffNote:'',pessoal:mapTasks(PESSOAL_DEFAULT),roteiro:mapTasks(ROTEIRO_DEFAULT),implementacao:mapTasks(IMPL_DEFAULT),alertas:[],history:[],archived:false,createdAt:now,updatedAt:now,lastAccessedAt:now,goLiveAt:null}}
+function normalizeClient(c){if(!c.pessoal)c.pessoal=mapTasks(PESSOAL_DEFAULT);if(!c.roteiro)c.roteiro=mapTasks(ROTEIRO_DEFAULT);if(!c.implementacao)c.implementacao=mapTasks(IMPL_DEFAULT);if(!c.alertas)c.alertas=[];if(!c.history)c.history=[];if(!c.tags)c.tags=[];['uf','modeloFiscal','cscId','cscToken','certificadoTipo','certificadoValidade','stoneCode','pinpadPorta','handoffNote'].forEach(k=>{if(c[k]==null)c[k]=''});if(c.posVendaD7==null)c.posVendaD7=false;if(c.posVendaD30==null)c.posVendaD30=false;if(!c.cor)c.cor='#3b82f6';return c}
+(data.clients||[]).forEach(normalizeClient);
+
+function getStatus(c){const all=[...(c.pessoal||[]),...(c.roteiro||[]),...(c.implementacao||[])];if(!all.length)return 'nao_iniciado';const d=all.filter(t=>t.done).length;if(!d)return 'nao_iniciado';if(d===all.length)return 'concluido';return 'em_andamento'}
+function getSlaStatus(c){if(!c.slaDate)return null;const end=new Date(c.slaDate+'T23:59:59');const diff=Math.ceil((end-Date.now())/86400000);if(getStatus(c)==='concluido')return{label:'OK',cls:'badge-sla-ok',days:diff};if(diff<0)return{label:'Atrasado '+Math.abs(diff)+'d',cls:'badge-sla-late',days:diff};if(diff<=2)return{label:diff+'d',cls:'badge-sla-warn',days:diff};return{label:diff+'d',cls:'badge-sla-ok',days:diff}}
+function touch(c){c.updatedAt=new Date().toISOString();c.lastAccessedAt=c.updatedAt}
+function addHistory(c,text){if(!c.history)c.history=[];c.history.unshift({id:uid(),text,at:new Date().toISOString()});if(c.history.length>80)c.history=c.history.slice(0,80)}
+function progressOf(c){const all=[...(c.pessoal||[])];const done=all.filter(t=>t.done).length,total=all.length||1;return{done,total,percent:Math.round(done/total*100)}}
+function fiscalChecklist(c){const modelo=c.modeloFiscal||'';const needCsc=!modelo||modelo==='NFCe';return{uf:!!c.uf,modelo:!!c.modeloFiscal,csc:needCsc?!!(c.cscId&&c.cscToken):true,cert:!!c.certificadoTipo,tef:!!(c.stoneCode||c.pinpadPorta),sugestao:c.uf?(FISCAL_UF[c.uf]||''):''}}
+
+function ensureGamification(){if(!data.gamification)data.gamification={xp:0,events:[],badgesUnlocked:[],activityDays:[],bootstrapped:false};if(!data.gamification.events)data.gamification.events=[];if(!data.gamification.badgesUnlocked)data.gamification.badgesUnlocked=[];if(!data.gamification.activityDays)data.gamification.activityDays=[]}
+function markActivityDay(){ensureGamification();const k=todayKey();if(!data.gamification.activityDays.includes(k)){data.gamification.activityDays.push(k);if(data.gamification.activityDays.length>90)data.gamification.activityDays=data.gamification.activityDays.slice(-90)}}
+function addXP(ruleId,meta){ensureGamification();const rule=XP_RULES.find(r=>r.id===ruleId);if(!rule)return;data.gamification.xp=(data.gamification.xp||0)+rule.xp;data.gamification.events.unshift({id:uid(),ruleId,xp:rule.xp,label:rule.label,meta:meta||'',at:new Date().toISOString()});if(data.gamification.events.length>200)data.gamification.events=data.gamification.events.slice(0,200);markActivityDay();refreshBadges(false)}
+function calcStreak(days){if(!days||!days.length)return 0;const set=new Set(days);let streak=0;const d=new Date();for(let i=0;i<90;i++){const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');if(set.has(k)){streak++;d.setDate(d.getDate()-1)}else if(i===0){d.setDate(d.getDate()-1);continue}else break}return streak}
+function getTreinoSteps(tipo){const inicio=[{id:'i1',g:'Início',t:'Acessar remotamente'},{id:'i2',g:'Início',t:'Compartilhar tela Meet'},{id:'i3',g:'Início',t:'Iniciar gravação'},{id:'i4',g:'Início',t:'Apresentar-se'},{id:'i5',g:'Início',t:'Perguntar Delivery/Mesas'}];const delivery=[{id:'d1',g:'Delivery',t:'Abrir caixa'},{id:'d2',g:'Delivery',t:'Captura de pedidos'},{id:'d3',g:'Delivery',t:'Pedido teste'},{id:'d4',g:'Delivery',t:'Impressão e status'},{id:'d5',g:'Delivery',t:'Cardápio/horários'}];const mesas=[{id:'m1',g:'Mesas',t:'Abrir caixa'},{id:'m2',g:'Mesas',t:'QR Code'},{id:'m3',g:'Mesas',t:'Pedido mesa'},{id:'m4',g:'Mesas',t:'Agrupar/transferir'},{id:'m5',g:'Mesas',t:'Fechar conta'}];const fim=[{id:'c1',g:'Caixa',t:'Fechamento'},{id:'c2',g:'Final',t:'Suporte e agradecer'}];if(tipo==='inicio')return inicio;if(tipo==='delivery')return inicio.concat(delivery,fim);if(tipo==='mesas')return inicio.concat(mesas,fim);return inicio.concat(delivery,mesas,fim)}
+
+const MANUAL_SECTIONS = [
+  {id:'s1', titulo:'1. Primeiros Passos e Diagnóstico', items:[
+    {id:'m1_1', t:'Acesso remoto (Anydesk/TeamViewer) + compartilhar tela no Meet'},
+    {id:'m1_2', t:'Informar gravação e que o link será enviado no WhatsApp'},
+    {id:'m1_3', t:'Apresentar-se e mapear a operação (delivery, presencial ou ambos)'},
+    {id:'m1_4', t:'Se presencial: pagamento antes ou depois do consumo?'},
+    {id:'m1_5', t:'Se delivery: como é a logística de entrega hoje?'},
+    {id:'m1_6', t:'Se presencial: irá usar QR Code mesa/comanda e App do garçom?'},
+    {id:'m1_7', t:'Adaptar o roteiro só ao que o cliente usa agora (deixar futuro para outro treino)'}
+  ]},
+  {id:'s2', titulo:'2. Dashboard e Abertura de Caixa', items:[
+    {id:'m2_1', t:'Explicar filtros de período e horário operacional no Dashboard'},
+    {id:'m2_2', t:'Mostrar faturamento bruto, ticket médio e variação'},
+    {id:'m2_3', t:'Gráfico de desempenho e composição (produtos, frete, descontos, taxa)'},
+    {id:'m2_4', t:'Vendas por origem (Cardápio Digital, Mesas, Delivery)'},
+    {id:'m2_5', t:'BeeImpressão: status Online/Offline e botão Atualizar'},
+    {id:'m2_6', t:'Abrir caixa: saldo inicial ou Sem Saldo'},
+    {id:'m2_7', t:'Selecionar caixa e tipos de venda (Presencial e/ou Delivery)'}
+  ]},
+  {id:'s3', titulo:'3. BeeBot e WhatsApp', items:[
+    {id:'m3_1', t:'Conectar BeeBot (QR Code do WhatsApp da loja)'},
+    {id:'m3_2', t:'Explicar Anti Banimento'},
+    {id:'m3_3', t:'Resposta automática com link do cardápio'},
+    {id:'m3_4', t:'Notificações de status e campanhas'},
+    {id:'m3_5', t:'Sons do sistema (mensagem/pedido)'},
+    {id:'m3_6', t:'Pedido Chat (cliente monta sozinho) — se usar'},
+    {id:'m3_7', t:'Novo pedido pelo BeeBot (atendente monta na conversa)'},
+    {id:'m3_8', t:'Alerta e silenciar conversa'},
+    {id:'m3_9', t:'TESTe prático: pedido pelo link do Cardápio Digital'}
+  ]},
+  {id:'s4', titulo:'4. Operação Delivery', items:[
+    {id:'m4_1', t:'Lançamento manual F1 / Novo Pedido'},
+    {id:'m4_2', t:'Seleção de itens, cliente ou nome avulso'},
+    {id:'m4_3', t:'Tipo: Entrega, Retirada ou Consumo no local + entregador + pagamento'},
+    {id:'m4_4', t:'Frete, acréscimos e descontos'},
+    {id:'m4_5', t:'Kanban: Aguardando → Preparo → Pronto → Em Entrega → Entregue'},
+    {id:'m4_6', t:'Reimpressão cozinha/cliente e regra de cancelamento (sem pagamento)'},
+    {id:'m4_7', t:'Aceite automático ativado'},
+    {id:'m4_8', t:'Painel de entregas / App do entregador'},
+    {id:'m4_9', t:'Tempos de entrega/retirada por dia'},
+    {id:'m4_10', t:'Vínculo marketplace (iFood) se usar'}
+  ]},
+  {id:'s5', titulo:'5. Mesas e Comandas', items:[
+    {id:'m5_1', t:'Regra de ouro: no máx. 2 identificações juntas (ex.: mesa + comanda)'},
+    {id:'m5_2', t:'Pedido por QR Code da mesa (teste)'},
+    {id:'m5_3', t:'App do garçom: lançar, produção e pedir fechamento'},
+    {id:'m5_4', t:'Cores: Verde livre · Amarelo ocupado · Azul fechamento'},
+    {id:'m5_5', t:'Agrupar contas, reabrir mesa, histórico'},
+    {id:'m5_6', t:'Divisão de conta por valor ou por itens'}
+  ]},
+  {id:'s6', titulo:'6. PDV — Venda rápida de balcão', items:[
+    {id:'m6_1', t:'Quando usar: balcão / takeaway / sem controle de mesas'},
+    {id:'m6_2', t:'Vínculo com caixa aberto'},
+    {id:'m6_3', t:'F1 / Novo Pedido — categorias, código e observações'},
+    {id:'m6_4', t:'Cliente cadastrado ou nome avulso'},
+    {id:'m6_5', t:'Recebimento + impressão simultânea (cozinha e cliente)'},
+    {id:'m6_6', t:'Liberação da tela para o próximo da fila'}
+  ]},
+  {id:'s7', titulo:'7. Fechamento de Caixa e Auditoria', items:[
+    {id:'m7_1', t:'Sangrias com justificativa'},
+    {id:'m7_2', t:'Aba Resumo: dinheiro, cartões, Pix, voucher, fiado'},
+    {id:'m7_3', t:'Operações: sangrias, entradas, cancelamentos'},
+    {id:'m7_4', t:'1ª Conferência: valores contados + calculadora'},
+    {id:'m7_5', t:'Diferença: sem diferença / sobra / falta'},
+    {id:'m7_6', t:'Salvar conferência (caixa continua aberto) vs Fechar caixa'},
+    {id:'m7_7', t:'Reabrir caixa se precisar corrigir (conforme permissão)'}
+  ]},
+  {id:'s8', titulo:'8. Cardápio Digital e Fidelização (se houver tempo)', items:[
+    {id:'m8_1', t:'Logo, capa (máx 1MB), cores e link público'},
+    {id:'m8_2', t:'Modalidades: entrega, retirada, consumo no local + CPF/mínimo'},
+    {id:'m8_3', t:'Formas de pagamento por canal'},
+    {id:'m8_4', t:'Horários, turnos e pausa programada'},
+    {id:'m8_5', t:'Área de entrega: KM, bairro, raio ou CEP'},
+    {id:'m8_6', t:'Avisos do cardápio (feriado, horário especial)'},
+    {id:'m8_7', t:'Cupons e cashback (visão rápida)'}
+  ]},
+  {id:'s9', titulo:'9. Protocolo final de limpeza', items:[
+    {id:'m9_1', t:'Reabrir caixa → cancelar vendas de teste → fechar caixa'},
+    {id:'m9_2', t:'Restaurar horários oficiais do cardápio (se alterou para teste)'},
+    {id:'m9_3', t:'Informar horários do suporte BeeFood (Brasília)'},
+    {id:'m9_4', t:'Agradecer e registrar resumo no Bitrix'}
+  ]}
+];
+
+function treinoProgress(t){const steps=getTreinoSteps(t.tipo||'completo');let done=0;steps.forEach(s=>{if(t.done&&t.done[s.id])done++});return{done,total:steps.length,percent:steps.length?Math.round(done/steps.length*100):0}}
+function computeMetrics(){ensureGamification();const clients=data.clients||[];const active=clients.filter(c=>!c.archived);const goLives=clients.filter(c=>c.goLiveAt||getStatus(c)==='concluido').length;let tasksDone=0,tasksTotal=0;active.forEach(c=>['pessoal','roteiro','implementacao'].forEach(k=>(c[k]||[]).forEach(t=>{tasksTotal++;if(t.done)tasksDone++})));let trainingsDone=0;(data.trainings||[]).forEach(t=>{const p=treinoProgress(t);if(p.total&&p.done===p.total)trainingsDone++});let slaLateActive=0;active.forEach(c=>{const s=getSlaStatus(c);if(s&&s.days<0&&getStatus(c)!=='concluido')slaLateActive++});return{activeClients:active.length,goLives,inProgress:active.filter(c=>getStatus(c)==='em_andamento').length,notStarted:active.filter(c=>getStatus(c)==='nao_iniciado').length,tasksDone,tasksTotal,trainings:(data.trainings||[]).length,trainingsDone,wikiOwn:(data.casos||[]).filter(c=>!c.seed).length,fiscalFilled:clients.filter(c=>c.uf&&c.modeloFiscal).length,tefFilled:clients.filter(c=>c.stoneCode).length,slaLateActive,xp:data.gamification.xp||0,streak:calcStreak(data.gamification.activityDays||[])}}
+function currentLevel(xp){let cur=LEVEL_XP[0];LEVEL_XP.forEach(L=>{if(xp>=L.min)cur=L});const idx=LEVEL_XP.findIndex(l=>l.nivel===cur.nivel);const next=LEVEL_XP[idx+1]||null;const span=next?(next.min-cur.min):1;return{cur,next,pct:next?Math.min(100,Math.round((xp-cur.min)/span*100)):100,need:next?(next.min-xp):0}}
+function refreshBadges(doSave){ensureGamification();const m=computeMetrics();const unlocked=new Set(data.gamification.badgesUnlocked||[]);let neu=[];BADGE_DEFS.forEach(b=>{if(!unlocked.has(b.id)&&b.check(m)){unlocked.add(b.id);neu.push(b)}});data.gamification.badgesUnlocked=Array.from(unlocked);if(neu.length&&doSave!==false){save();playDing();showToast('🏅 '+neu.map(b=>b.nome).join(', '))}}
+function bootstrapXPFromData(){ensureGamification();if(data.gamification.bootstrapped)return;let xp=0;(data.clients||[]).forEach(c=>{xp+=5;if(c.goLiveAt||getStatus(c)==='concluido')xp+=50;['pessoal','roteiro','implementacao'].forEach(k=>(c[k]||[]).forEach(t=>{if(t.done)xp+=2}))});(data.trainings||[]).forEach(t=>{xp+=5;const p=treinoProgress(t);if(p.total&&p.done===p.total)xp+=40});(data.casos||[]).filter(c=>!c.seed).forEach(()=>xp+=25);data.gamification.xp=Math.max(data.gamification.xp||0,xp);data.gamification.bootstrapped=true;markActivityDay();refreshBadges(false);save()}
+function ensureWikiSeed(){if(!data.casos)data.casos=[];const titles=new Set(data.casos.map(c=>(c.titulo||'').toLowerCase()));const now=new Date().toISOString();let added=0;WIKI_SEED.forEach(s=>{if(titles.has(s.titulo.toLowerCase()))return;data.casos.push({id:uid(),titulo:s.titulo,texto:s.texto,solucao:s.solucao,tags:(s.tags||[]).slice(),createdAt:now,updatedAt:now,seed:true});added++});if(added)save()}
+function ensureDefaultScripts(){
+  if(!data.scripts) data.scripts=[];
+  const existingTitles = new Set(data.scripts.map(s => (s.titulo||'').toLowerCase()));
+  let added=0;
+  DEFAULT_SCRIPTS.forEach(s => {
+    if(!existingTitles.has(s.titulo.toLowerCase())){
+      data.scripts.push({ id: uid(), titulo: s.titulo, texto: s.texto, tags: (s.tags||[]).slice() });
+      existingTitles.add(s.titulo.toLowerCase());
+      added++;
+    }
+  });
+  if(added) save();
+}
+function ensureBitrixTemplates(){if(!data.bitrixTemplates||!data.bitrixTemplates.length){data.bitrixTemplates=DEFAULT_BITRIX.map(t=>({id:t.id||uid(),titulo:t.titulo,texto:t.texto}));save()}}
+function needsWeeklyBackup(){if(!data.lastBackupAt)return true;return(Date.now()-new Date(data.lastBackupAt).getTime())>7*86400000}
+function exportData(){const payload={version:4,exportedAt:new Date().toISOString(),clients:data.clients,agenda:data.agenda,scripts:data.scripts,trainings:data.trainings,casos:data.casos,manualSessions:data.manualSessions,bitrixTemplates:data.bitrixTemplates,gamification:data.gamification,lastBackupAt:new Date().toISOString()};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='onboarding-backup-'+todayKey()+'.json';a.click();data.lastBackupAt=new Date().toISOString();save();showToast('Backup baixado')}
+function importData(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const imp=JSON.parse(r.result);if(imp.clients)data.clients=imp.clients.map(normalizeClient);if(imp.scripts)data.scripts=imp.scripts;if(imp.trainings)data.trainings=imp.trainings;if(imp.casos)data.casos=imp.casos;if(imp.manualSessions)data.manualSessions=imp.manualSessions;if(imp.agenda)data.agenda=imp.agenda;if(imp.bitrixTemplates)data.bitrixTemplates=imp.bitrixTemplates;if(imp.gamification)data.gamification=imp.gamification;if(imp.lastBackupAt)data.lastBackupAt=imp.lastBackupAt;save();if(typeof flushToCloud==='function')flushToCloud(true).catch(()=>{});showToast('Importado');switchTab('clientes')}catch(e){showToast('JSON inválido')}};r.readAsText(f)}
+
+
+function playDing(){
+  if(!data.settings||!data.settings.sound) return;
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator(); const g=ctx.createGain();
+    o.type='sine'; o.frequency.value=880; g.gain.value=0.08;
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.35); o.stop(ctx.currentTime+0.35);
+  }catch(e){}
+}
+function weekKey(d){ const x=new Date(d); const day=x.getDay()||7; x.setHours(0,0,0,0); x.setDate(x.getDate()-day+1); return x.toISOString().slice(0,10); }
+function computeWeekStats(){
+  const wk=weekKey(new Date());
+  let tasks=0, finals=0, trainings=0, wiki=0, xpWeek=0;
+  (data.clients||[]).forEach(c=>{
+    if(c.goLiveAt && weekKey(c.goLiveAt)===wk) finals++;
+  });
+  ((data.gamification&&data.gamification.events)||[]).forEach(e=>{
+    if(weekKey(e.at)!==wk) return;
+    xpWeek += e.xp||0;
+    if(e.ruleId==='task_done') tasks++;
+    if(e.ruleId==='client_finalize') finals++;
+    if(e.ruleId==='training_done') trainings++;
+    if(e.ruleId==='wiki_create') wiki++;
+  });
+  return {tasks, finals, trainings, wiki, xpWeek, wk};
+}
+function toggleTheme(){
+  if(!data.settings) data.settings={sound:true,theme:'dark'};
+  data.settings.theme = data.settings.theme==='light'?'dark':'light';
+  document.body.classList.toggle('theme-light', data.settings.theme==='light');
+  save(); showToast(data.settings.theme==='light'?'Tema claro':'Tema escuro');
+}
+function toggleSound(){
+  if(!data.settings) data.settings={sound:true,theme:'dark'};
+  data.settings.sound = !data.settings.sound;
+  save(); showToast(data.settings.sound?'Som ligado':'Som desligado');
+  if(data.settings.sound) playDing();
+}
+function toggleFocusMode(){
+  document.body.classList.toggle('focus-mode');
+  const on=document.body.classList.contains('focus-mode');
+  if(on){
+    const sf=document.getElementById('statusFilter');
+    if(sf){ sf.value='meu_dia'; }
+    switchTab('clientes');
+    showToast('Modo foco: só meu dia');
+  } else showToast('Modo foco desligado');
+}
+function exportClientPdf(id){
+  const c=data.clients.find(x=>x.id===id); if(!c) return;
+  const p=progressOf(c); const st=getStatus(c);
+  const pend=[...(c.pessoal||[]),...(c.roteiro||[]),...(c.implementacao||[])].filter(t=>!t.done).map(t=>'• '+t.texto).join('\\n')||'Nenhuma pendência';
+  const htmlDoc=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(c.nome)}</title>
+  <style>body{font-family:system-ui,sans-serif;padding:24px;color:#111;max-width:720px;margin:auto}h1{font-size:1.3rem}h2{font-size:1rem;margin-top:18px;border-bottom:1px solid #ddd;padding-bottom:4px}
+  .meta{color:#555;font-size:.9rem}pre{white-space:pre-wrap;background:#f6f6f6;padding:10px;border-radius:8px;font-size:.85rem}</style></head><body>
+  <h1>${escapeHtml(c.nome)}</h1>
+  <div class="meta">Código: ${escapeHtml(c.codigo||'—')} · Status: ${st} · Progresso: ${p.percent}% · Prioridade: ${escapeHtml(c.prioridade||'')}</div>
+  <div class="meta">Criado: ${fmt(c.createdAt)} · Atualizado: ${fmt(c.updatedAt)} · UF: ${escapeHtml(c.uf||'—')} · Fiscal: ${escapeHtml(c.modeloFiscal||'—')}</div>
+  <h2>Observações</h2><pre>${escapeHtml(c.observacoes||'—')}</pre>
+  <h2>Pendências</h2><pre>${escapeHtml(pend)}</pre>
+  <h2>Fiscal / TEF</h2><pre>CSC: ${escapeHtml(c.cscId||'—')} / ${escapeHtml(c.cscToken||'—')}
+Cert: ${escapeHtml(c.certificadoTipo||'—')} ${escapeHtml(c.certificadoValidade||'')}
+Stone: ${escapeHtml(c.stoneCode||'—')} · Porta: ${escapeHtml(c.pinpadPorta||'—')}</pre>
+  ${c.handoffNote?'<h2>Handoff</h2><pre>'+escapeHtml(c.handoffNote)+'</pre>':''}
+  <p style="margin-top:24px;color:#888;font-size:.8rem">Exportado do Onboarding BeeFood · ${new Date().toLocaleString('pt-BR')}</p>
+  <script>window.onload=function(){window.print()}<\/script></body></html>`;
+  const w=window.open('','_blank'); if(!w){showToast('Permita pop-up para exportar');return}
+  w.document.write(htmlDoc); w.document.close();
+}
+
+function switchTab(tab){currentTab=tab;document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));const fc=document.getElementById('filtersClientes');if(fc)fc.style.display=tab==='clientes'?'flex':'none';const btn=document.getElementById('btnNewMain');if(tab==='clientes'){btn.style.display='inline-flex';btn.textContent='+ Cliente'}else if(tab==='agenda'){btn.style.display='inline-flex';btn.textContent='+ Agenda'}else if(tab==='treino'){btn.style.display='inline-flex';btn.textContent='+ Nova sessão'}else if(tab==='scripts'){btn.style.display='inline-flex';btn.textContent='+ Script'}else if(tab==='casos'){btn.style.display='inline-flex';btn.textContent='+ Artigo'}else btn.style.display='none';selectedId=null;selectedType=null;document.getElementById('app').classList.remove('showing-detail');document.getElementById('emptyState').style.display='flex';document.getElementById('detailView').style.display='none';renderSidebar();if(tab==='dashboard')renderDashboard();if(tab==='config')renderConfig();if(tab==='carreira')renderCarreira();if(tab==='scripts')renderScriptsHome();if(tab==='impostos')renderImpostosHome();if(tab==='casos')renderCasosHome();if(tab==='treino')renderTreinoHome();if(tab==='agenda')renderAgendaHome()}
+function onNewMain(){if(currentTab==='clientes')openClientModal();else if(currentTab==='agenda')openAgendaModal();else if(currentTab==='treino')startNewTraining();else if(currentTab==='scripts')openScriptModal();else if(currentTab==='casos')openCasoModal()}
+function closeModal(){document.getElementById('modal').style.display='none';document.getElementById('modal').innerHTML=''}
+function toggleSection(el){el.classList.toggle('open');const b=el.nextElementSibling;if(b)b.classList.toggle('open')}
+function showDetail(){document.getElementById('emptyState').style.display='none';document.getElementById('detailView').style.display='flex';document.getElementById('app').classList.add('showing-detail')}
+
+function isMeuDia(c){if(c.archived)return false;const today=todayKey();const touched=(c.lastAccessedAt||c.updatedAt||'').slice(0,10)===today;const sla=getSlaStatus(c);const slaHot=sla&&sla.days<=2&&getStatus(c)!=='concluido';const alertToday=(c.alertas||[]).some(a=>!a.done&&(a.quando||'').slice(0,10)===today);return touched||slaHot||alertToday||getStatus(c)==='em_andamento'}
+
+function onSearchInput(){
+  renderSidebar();
+  if(currentTab==='scripts') renderScriptsHome();
+  if(currentTab==='casos') renderCasosHome();
+  if(currentTab==='impostos') renderImpostosHome();
+}
+function renderSidebar(){
+  const area=document.getElementById('listArea');if(!area)return;if(currentTab==='clientes')renderClientList(area);else if(currentTab==='treino'){const list=getAllTrainSessions();document.getElementById('listCount').textContent=list.length+' sessões';area.innerHTML=list.map(t=>{const p=t.kind==='manual'?manualProgress(t):treinoProgress(t);const label=t.kind==='manual'?'Manual oficial':(t.tipo||'rápido');return `<div class="list-item ${selectedId===t.id?'active':''}" onclick="openTrainSession('${t.id}','${t.kind}')"><div class="list-item-title">${escapeHtml(t.clientName||'Sessão')}</div><div class="list-item-meta">${p.percent}% · ${escapeHtml(label)}</div></div>`}).join('')||'<div class="empty-msg">Nenhuma sessão</div>'}else if(currentTab==='scripts'){
+    const q=((document.getElementById('searchInput')||{}).value||'').toLowerCase().trim();
+    const tag=data.scriptTagFilter||'';
+    let list=data.scripts||[];
+    if(tag) list=list.filter(s=>(s.tags||[]).includes(tag));
+    if(q) list=list.filter(s=>((s.titulo||'')+' '+(s.texto||'')+' '+(s.tags||[]).join(' ')).toLowerCase().includes(q));
+    document.getElementById('listCount').textContent=list.length+' scripts';
+    area.innerHTML=list.map(s=>`<div class="list-item ${selectedId===s.id?'active':''}" onclick="selectScript('${s.id}')"><div class="list-item-title">${escapeHtml(s.titulo)}</div>${s.tags&&s.tags.length?`<div class="list-item-meta">${s.tags.slice(0,2).map(t=>'<span class="tag-chip" style="font-size:.65rem;padding:1px 5px">'+escapeHtml(t)+'</span>').join(' ')}</div>`:''}</div>`).join('')||'<div class="empty-msg">Nenhum script</div>';
+  }else if(currentTab==='casos'){document.getElementById('listCount').textContent=(data.casos||[]).length;area.innerHTML=(data.casos||[]).slice(0,50).map(c=>`<div class="list-item" onclick="selectCaso('${c.id}')"><div class="list-item-title">${escapeHtml(c.titulo)}</div></div>`).join('')}else{document.getElementById('listCount').textContent=currentTab;area.innerHTML='<div class="empty-msg">Painel →</div>'}}
+
+function renderClientList(area){const search=((document.getElementById('searchInput')||{}).value||'').toLowerCase().trim();const filter=((document.getElementById('statusFilter')||{}).value)||'acompanhando';const prio=((document.getElementById('prioFilter')||{}).value)||'all';let list=(data.clients||[]).filter(c=>{const ms=!search||(c.nome||'').toLowerCase().includes(search)||(c.codigo||'').toLowerCase().includes(search)||(c.observacoes||'').toLowerCase().includes(search);if(!ms)return false;if(prio!=='all'&&c.prioridade!==prio)return false;const st=getStatus(c),arch=!!c.archived;if(filter==='arquivados')return arch;if(filter==='meu_dia')return isMeuDia(c);if(filter==='sla_atrasado'){const s=getSlaStatus(c);return !arch&&s&&s.days<0&&st!=='concluido'}if(filter==='acompanhando')return !arch&&(st==='em_andamento'||st==='nao_iniciado');if(filter==='all')return !arch;return !arch&&st===filter});list.sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));document.getElementById('listCount').textContent=list.length+' clientes';
+area.innerHTML=list.map(c=>{
+  const p=progressOf(c); const st=getStatus(c); const sla=getSlaStatus(c);
+  const pr=c.prioridade||'media';
+  const stLabel=st==='em_andamento'?'Em andamento':st==='concluido'?'Concluído':st==='nao_iniciado'?'Não iniciado':st;
+  const stPill=st==='em_andamento'?'pill-status-em':st==='concluido'?'pill-status-ok':'pill-status-nao';
+  const prPill=pr==='urgente'||pr==='alta'?'pill-alta':pr==='baixa'?'pill-baixa':'pill-media';
+  const obs=(c.observacoes||'').trim();
+  const days=daysSince(c.createdAt);
+  const when=fmt(c.updatedAt||c.createdAt);
+  return `<div class="list-item ${selectedId===c.id?'active':''}" onclick="selectClient('${c.id}')" style="border-left-color:${c.cor||'#3b82f6'}">
+    <div class="list-item-title">${escapeHtml(c.nome)}</div>
+    ${obs?`<div class="list-item-obs">${escapeHtml(obs)}</div>`:''}
+    <div class="list-item-meta">
+      <span class="code">#${escapeHtml(c.codigo||'—')} · ${days}d · ${when}</span>
+      <span class="pill ${prPill}">${escapeHtml(pr)}</span>
+      <span class="pill ${stPill}">${escapeHtml(stLabel)}</span>
+      ${sla&&sla.days<0&&st!=='concluido'?`<span class="pill pill-alta">${escapeHtml(sla.label)}</span>`:''}
+    </div>
+    <div class="list-prog"><span style="width:${p.percent}%"></span></div>
+  </div>`;
+}).join('')||'<div class="empty-msg">Nenhum cliente</div>'}
+function selectClient(id){const c=data.clients.find(x=>x.id===id);if(!c)return;selectedId=id;selectedType='client';c.lastAccessedAt=new Date().toISOString();save();showDetail();renderClientDetail();renderSidebar()}
+
+function renderClientDetail(){
+  const c=data.clients.find(x=>x.id===selectedId);if(!c)return;
+  const view=document.getElementById('detailView');const p=progressOf(c);const st=getStatus(c);const sla=getSlaStatus(c);const fc=fiscalChecklist(c);
+  function tasksHtml(secao,title){const arr=c[secao]||[];return `<div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>${title} (${arr.filter(t=>t.done).length}/${arr.length})</span><span class="chevron">▶</span></div><div class="section-body open"><button class="btn btn-sm btn-outline" style="margin-bottom:6px" onclick="completeAllSection('${c.id}','${secao}')">Concluir todas</button>${arr.map(t=>`<div class="check-item ${t.done?'done':''}" id="task-${t.id}"><input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${c.id}','${secao}','${t.id}')" /><div class="check-text">${escapeHtml(t.texto)}</div></div>`).join('')}</div></div>`}
+  const backupBanner=needsWeeklyBackup()?`<div class="backup-banner"><span>💾 Backup semanal pendente</span><button class="btn btn-sm btn-success" onclick="exportData()">Baixar agora</button></div>`:'';
+  const unidadesHtml = (c.unidades&&c.unidades.length) ? `<div style="font-size:.75rem;color:var(--text-muted);margin-top:4px">Unidades: ${c.unidades.map(u=>escapeHtml(u.nome)+(u.id?' ('+escapeHtml(u.id)+')':'')).join(' · ')}</div>` : '';
+  view.innerHTML=`<div class="main-header"><div class="main-header-info"><h2 style="border-left:4px solid ${c.cor||'#3b82f6'};padding-left:8px">${escapeHtml(c.nome)}</h2><div class="main-header-meta">${escapeHtml(c.codigo||'—')} · ${st} · ${p.percent}% · Criado ${fmt(c.createdAt)}${sla?` · <span class="badge ${sla.cls}">${sla.label}</span>`:''}</div>${unidadesHtml}</div>
+  <div class="main-header-actions"><button class="btn btn-sm btn-outline" onclick="openClientModal('${c.id}')">Editar</button><button class="btn btn-sm btn-success" onclick="finalizarCliente('${c.id}')">✅ Finalizar</button><button class="btn btn-sm btn-outline" onclick="showBitrixMenu('${c.id}')">Bitrix</button><button class="btn btn-sm btn-outline" onclick="copyPendingPessoal('${c.id}')">📋 Pendências</button><button class="btn btn-sm btn-outline" onclick="showConclusaoMenu('${c.id}')">✅ Conclusão</button><button class="btn btn-sm btn-outline" onclick="exportClientPdf('${c.id}')">📄 PDF</button><button class="btn btn-sm btn-outline" onclick="toggleArchive('${c.id}')">${c.archived?'Desarquivar':'Arquivar'}</button></div></div>
+  <div class="main-content">${backupBanner}<div class="progress-wrap"><div class="progress-bar" style="width:${p.percent}%"></div></div>
+  <div class="info-grid"><div class="info-card"><div class="info-card-label">Telefone</div><div class="info-card-value">${c.telefone?escapeHtml(c.telefone):'—'}</div></div><div class="info-card"><div class="info-card-label">Prioridade</div><div class="info-card-value">${escapeHtml(c.prioridade||'')}</div></div><div class="info-card"><div class="info-card-label">Tipo</div><div class="info-card-value">${escapeHtml(c.tipo||'')}</div></div><div class="info-card"><div class="info-card-label">Dias</div><div class="info-card-value">${daysSince(c.createdAt)}</div></div></div>
+  <div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>📝 Observações</span><span class="chevron">▶</span></div><div class="section-body open"><div class="obs-wrap"><div class="obs-editable" id="obsBox" onclick="startEditObs('${c.id}')">${c.observacoes?escapeHtml(c.observacoes):'<span style="color:var(--text-muted);font-style:italic">Clique para adicionar...</span>'}</div><button type="button" class="mic-bubble" id="btnRec" onclick="event.stopPropagation();toggleTranscription()">${isRecording?'⏹':'🎤'}</button><div class="mic-popover" id="micPopover" style="display:none"><div id="transcribeStatus">Toque no microfone</div><div class="transcribe-result" id="transcribeResult"></div><div style="display:flex;gap:4px;margin-top:4px"><button class="btn btn-sm btn-success" onclick="event.stopPropagation();applyTranscriptionToObs('${c.id}')">Inserir</button><button class="btn btn-sm btn-outline" onclick="event.stopPropagation();clearTranscription()">Limpar</button></div></div></div></div></div>
+  <div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>🧾 Fiscal & TEF</span><span class="chevron">▶</span></div><div class="section-body open"><div class="info-grid"><div class="info-card"><div class="info-card-label">UF</div><div class="info-card-value">${escapeHtml(c.uf||'—')}</div></div><div class="info-card"><div class="info-card-label">Modelo</div><div class="info-card-value">${escapeHtml(c.modeloFiscal||'—')}</div></div><div class="info-card"><div class="info-card-label">CSC</div><div class="info-card-value">${escapeHtml(c.cscId||'—')} / ${escapeHtml(c.cscToken||'—')}</div></div><div class="info-card"><div class="info-card-label">Cert / Stone</div><div class="info-card-value">${escapeHtml(c.certificadoTipo||'—')} · ${escapeHtml(c.stoneCode||'—')}</div></div></div>
+  ${fc.sugestao?`<div style="font-size:.78rem;color:var(--accent);margin-top:4px">Sugestão UF: ${escapeHtml(fc.sugestao)}</div>`:''}
+  <div class="fiscal-row">
+    <span class="fiscal-chip ${fc.uf?'ok':'miss'}">${fc.uf?'✓':'○'} UF</span>
+    <span class="fiscal-chip ${fc.modelo?'ok':'miss'}">${fc.modelo?'✓':'○'} Modelo</span>
+    <span class="fiscal-chip ${fc.csc?'ok':'miss'}">${fc.csc?'✓':'○'} CSC</span>
+    <span class="fiscal-chip ${fc.cert?'ok':'miss'}">${fc.cert?'✓':'○'} Cert.</span>
+    <span class="fiscal-chip ${fc.tef?'ok':'miss'}">${fc.tef?'✓':'○'} TEF</span>
+  </div>
+  <button class="btn btn-sm btn-outline" style="margin-top:6px" onclick="openClientModal('${c.id}')">Editar fiscal/TEF</button></div></div>
+  ${tasksHtml('pessoal','Checklist')}
+  <div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>⏰ Alertas (${(c.alertas||[]).filter(a=>!a.done).length})</span><span class="chevron">▶</span></div><div class="section-body open"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><input id="newAlertText" placeholder="Lembrete" style="flex:1;min-width:120px;background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px" /><input id="newAlertWhen" placeholder="15:00 ou data hora" style="width:160px;background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px" /><button class="btn btn-sm btn-success" onclick="addAlert('${c.id}')">+</button></div>
+  ${(c.alertas||[]).map(a=>`<div class="check-item ${a.done?'done':''}"><input type="checkbox" ${a.done?'checked':''} onchange="toggleAlert('${c.id}','${a.id}')" /><div class="check-text">${escapeHtml(a.texto)} <span style="color:var(--text-muted);font-size:.75rem">${fmt(a.quando)}</span></div></div>`).join('')||'<div class="empty-msg">Nenhum</div>'}</div></div>
+  ${c.handoffNote?`<div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Handoff</span><span class="chevron">▶</span></div><div class="section-body open"><div style="white-space:pre-wrap;font-size:.85rem">${escapeHtml(c.handoffNote)}</div></div></div>`:''}
+  <div class="section-box"><div class="section-head" onclick="toggleSection(this)"><span>📜 Histórico</span><span class="chevron">▶</span></div><div class="section-body">${(c.history||[]).slice(0,20).map(h=>`<div class="history-item"><div class="time">${fmt(h.at)}</div>${escapeHtml(h.text)}</div>`).join('')||'—'}</div></div></div>`}
+
+function toggleTask(clientId,secao,taskId){
+  const c=data.clients.find(x=>x.id===clientId); const t=c[secao].find(i=>i.id===taskId);
+  t.done=!t.done; touch(c); addHistory(c,(t.done?'Concluiu: ':'Reabriu: ')+t.texto.slice(0,50));
+  if(t.done) addXP('task_done', t.texto.slice(0,40));
+  if(getStatus(c)==='concluido'&&!c.goLiveAt) c.goLiveAt=new Date().toISOString();
+  save();
+  // atualiza só a linha, sem reconstruir a página (evita pular pro topo)
+  const row=document.getElementById('task-'+taskId);
+  if(row){
+    row.classList.toggle('done', !!t.done);
+    const cb=row.querySelector('input[type=checkbox]');
+    if(cb) cb.checked=!!t.done;
+  } else {
+    preserveScroll(()=>renderClientDetail());
+  }
+  // atualiza barra e contadores leves
+  const p=progressOf(c);
+  const bar=document.querySelector('.main-content .progress-bar');
+  if(bar) bar.style.width=p.percent+'%';
+  renderSidebar();
+}
+function completeAllSection(clientId,secao){const c=data.clients.find(x=>x.id===clientId);(c[secao]||[]).forEach(t=>{if(!t.done){t.done=true;addXP('task_done',t.texto.slice(0,20))}});touch(c);addHistory(c,'Concluiu seção '+secao);save();preserveScroll(()=>{renderClientDetail();renderSidebar()})}
+function startEditObs(id){const c=data.clients.find(x=>x.id===id);const box=document.getElementById('obsBox');if(!box)return;box.onclick=null;box.innerHTML=`<textarea id="obsEdit" style="width:100%;min-height:80px;background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px">${escapeHtml(c.observacoes||'')}</textarea><button class="btn btn-sm btn-success" style="margin-top:4px" onclick="saveObs('${id}')">Salvar</button>`;document.getElementById('obsEdit').focus()}
+function saveObs(id){const c=data.clients.find(x=>x.id===id);c.observacoes=document.getElementById('obsEdit').value;touch(c);save();renderClientDetail()}
+function toggleTranscription(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){showToast('Use Chrome/Edge');return}const pop=document.getElementById('micPopover'),btn=document.getElementById('btnRec'),st=document.getElementById('transcribeStatus'),res=document.getElementById('transcribeResult');if(pop)pop.style.display='block';if(isRecording&&recognition){recognition.stop();isRecording=false;if(btn){btn.textContent='🎤';btn.classList.remove('recording')}if(st)st.textContent='Parado';return}recognition=new SR();recognition.lang='pt-BR';recognition.continuous=true;recognition.interimResults=true;let finalText=(res&&res.textContent)||'';recognition.onstart=()=>{isRecording=true;if(btn){btn.textContent='⏹';btn.classList.add('recording')}if(st)st.textContent='🔴 Ouvindo...'};recognition.onresult=(ev)=>{let interim='';for(let i=ev.resultIndex;i<ev.results.length;i++){const t=ev.results[i][0].transcript;if(ev.results[i].isFinal)finalText+=t+' ';else interim+=t}if(res)res.textContent=(finalText+interim).trim()};recognition.onerror=()=>{isRecording=false;if(btn){btn.textContent='🎤';btn.classList.remove('recording')}};recognition.onend=()=>{isRecording=false;if(btn){btn.textContent='🎤';btn.classList.remove('recording')}};recognition.start()}
+function clearTranscription(){const res=document.getElementById('transcribeResult');if(res)res.textContent=''}
+function applyTranscriptionToObs(clientId){const text=((document.getElementById('transcribeResult')||{}).textContent||'').trim();if(!text){showToast('Vazio');return}const c=data.clients.find(x=>x.id===clientId);c.observacoes=(c.observacoes?c.observacoes+'\n':'')+text;touch(c);addHistory(c,'Transcrição');save();renderClientDetail();showToast('Inserido')}
+function parseWhen(str){str=(str||'').trim();if(!str)return null;const now=new Date();if(/^\d{1,2}:\d{2}$/.test(str)){const[h,m]=str.split(':').map(Number);const d=new Date(now);d.setHours(h,m,0,0);if(d<now)d.setDate(d.getDate()+1);return d}const d=new Date(str.replace(' ','T'));return isNaN(d.getTime())?null:d}
+function addAlert(clientId){const texto=((document.getElementById('newAlertText')||{}).value||'').trim();const whenStr=((document.getElementById('newAlertWhen')||{}).value||'');if(!texto){showToast('Texto');return}const when=parseWhen(whenStr)||new Date(Date.now()+3600000);const c=data.clients.find(x=>x.id===clientId);c.alertas.push({id:uid(),texto,quando:when.toISOString(),done:false});c.alertas.sort((a,b)=>new Date(a.quando)-new Date(b.quando));touch(c);save();renderClientDetail();showToast('Alerta ok')}
+function toggleAlert(clientId,alertId){const c=data.clients.find(x=>x.id===clientId);const a=c.alertas.find(x=>x.id===alertId);a.done=!a.done;save();renderClientDetail()}
+function schedulePosVenda(c){if(!c.alertas)c.alertas=[];const base=new Date(c.goLiveAt||Date.now());const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);x.setHours(10,0,0,0);return x};if(!c.posVendaD7){c.alertas.push({id:uid(),texto:'Pós-venda D+7',quando:addDays(base,7).toISOString(),done:false});c.posVendaD7=true}if(!c.posVendaD30){c.alertas.push({id:uid(),texto:'Pós-venda D+30',quando:addDays(base,30).toISOString(),done:false});c.posVendaD30=true}}
+function moduleHints(c){
+  const tipo=(c.tipo||'completo').toLowerCase();
+  const tags=(c.tags||[]).map(t=>String(t).toLowerCase());
+  const obs=(c.observacoes||'').toLowerCase();
+  const blob=tags.join(' ')+' '+obs;
+  return {
+    tipo,
+    delivery: tipo==='delivery'||tipo==='completo'||/delivery|ifood|card[aá]pio/.test(blob),
+    mesas: tipo==='mesas'||tipo==='completo'||/mesa|comanda|gar[cç]om|qr/.test(blob),
+    marketplace: /ifood|marketplace|rappi|uber/.test(blob)||!!c.stoneCode===false&&/ifood/.test(blob),
+    fiscal: !!(c.uf||c.modeloFiscal)||/fiscal|nfc|sat|mfe/.test(blob),
+    tef: !!(c.stoneCode||c.pinpadPorta)||/tef|stone|pin\s*pad/.test(blob),
+    pdv: /pdv|balc[aã]o|balcao/.test(blob)
+  };
+}
+
+const CONCLUSAO_VARIANTES = [
+  {id:'auto', label:'Automático (pelo tipo do cliente)'},
+  {id:'completo', label:'Completo — delivery + presencial'},
+  {id:'delivery', label:'Só delivery / cardápio'},
+  {id:'mesas', label:'Só mesas e comandas'},
+  {id:'pdv', label:'Só PDV / balcão'},
+  {id:'marketplace', label:'Com ênfase em marketplace'},
+  {id:'curto', label:'Versão curta (mínima)'}
+];
+
+function buildFinalizacaoText(c, variantId){
+  const s=data.settings||{};
+  const m=moduleHints(c);
+  let v=variantId||'auto';
+  if(v==='auto'){
+    if(m.tipo==='delivery') v='delivery';
+    else if(m.tipo==='mesas') v='mesas';
+    else if(m.pdv && !m.mesas) v='pdv';
+    else v='completo';
+    if(m.marketplace && v==='delivery') v='marketplace';
+  }
+  const partes=[];
+  partes.push('✅ Onboarding finalizado com sucesso');
+  partes.push('');
+  partes.push('Cliente: '+(c.nome||'—'));
+  if(c.codigo) partes.push('Código: '+c.codigo);
+
+  if(v==='curto'){
+    partes.push('');
+    partes.push('Concluímos as configurações e pendências necessárias.');
+    partes.push('O estabelecimento está apto a operar com o BeeFood.');
+    return partes.join('\n');
+  }
+
+  const tipoLabel={completo:'Completo (delivery + presencial)',delivery:'Delivery / cardápio digital',mesas:'Mesas e comandas',pdv:'PDV / balcão',marketplace:'Delivery com marketplace'}[v]||(c.tipo||'completo');
+  partes.push('Perfil: '+tipoLabel);
+
+  if(s.finalIncluirFiscal){
+    if(c.uf||c.modeloFiscal) partes.push('Fiscal: '+[c.uf,c.modeloFiscal].filter(Boolean).join(' · '));
+    if(c.stoneCode) partes.push('TEF Stone: configurado');
+  }
+
+  partes.push('');
+  partes.push('Concluímos todas as configurações e pendências necessárias para a operação.');
+
+  const validados=[];
+  if(v==='completo'||v==='delivery'||v==='marketplace'){
+    validados.push('fluxo de delivery e/ou cardápio digital');
+    validados.push('impressão e status de pedidos');
+  }
+  if(v==='completo'||v==='mesas'){
+    validados.push('gestão de mesas/comandas');
+    validados.push('lançamento e fechamento presencial');
+  }
+  if(v==='pdv'){
+    validados.push('venda rápida no PDV/balcão');
+    validados.push('recebimento e impressão de produção');
+  }
+  if(v==='marketplace'){
+    validados.push('integração e vínculo de produtos de marketplace');
+  }
+  if(v==='completo'){
+    validados.push('abertura e rotina de caixa');
+  }
+  // dedupe
+  const seen=new Set(); const uniq=[];
+  validados.forEach(x=>{ if(!seen.has(x)){ seen.add(x); uniq.push(x); }});
+  if(uniq.length) partes.push('Foram validados: '+uniq.join('; ')+'.');
+
+  partes.push('O estabelecimento está apto a operar com o BeeFood.');
+
+  if(s.finalIncluirPosVenda){
+    partes.push('');
+    partes.push('Acompanhamento pós-venda (D+7 e D+30) já foi agendado internamente.');
+  }
+  return partes.join('\n');
+}
+
+function copyPendingPessoal(id){
+  const c=data.clients.find(x=>x.id===id); if(!c) return;
+  const blocks=[];
+  function add(title, arr){
+    const pend=(arr||[]).filter(t=>!t.done);
+    if(!pend.length) return;
+    blocks.push(title);
+    pend.forEach(t=>blocks.push('• '+t.texto));
+    blocks.push('');
+  }
+  add('Pendências pessoais', c.pessoal);
+  add('Roteiro', c.roteiro);
+  add('Implementação', c.implementacao);
+  let text;
+  if(!blocks.length){
+    text='Sem pendências em aberto — '+c.nome+(c.codigo?' ('+c.codigo+')':'');
+  } else {
+    text='Pendências — '+c.nome+(c.codigo?' ('+c.codigo+')':'')+'\n\n'+blocks.join('\n').trim();
+  }
+  navigator.clipboard.writeText(text).then(()=>showToast('Pendências copiadas')).catch(()=>{});
+}
+
+function showConclusaoMenu(id){
+  const c=data.clients.find(x=>x.id===id); if(!c) return;
+  const opts=CONCLUSAO_VARIANTES.map((v,i)=>(i+1)+') '+v.label).join('\n');
+  const n=parseInt(prompt('Modelo de conclusão:\n'+opts+'\n\nNúmero (Enter = automático):'),10);
+  let variant='auto';
+  if(n>=1 && n<=CONCLUSAO_VARIANTES.length) variant=CONCLUSAO_VARIANTES[n-1].id;
+  const text=buildFinalizacaoText(c, variant);
+  navigator.clipboard.writeText(text).then(()=>showToast('Conclusão copiada')).catch(()=>{});
+}
+
+function finalizarCliente(id){
+  const c=data.clients.find(x=>x.id===id); if(!c) return;
+  if(!confirm('Finalizar onboarding e marcar todas as atividades?')) return;
+  const opts=CONCLUSAO_VARIANTES.map((v,i)=>(i+1)+') '+v.label).join('\n');
+  const n=parseInt(prompt('Qual mensagem de conclusão copiar?\n'+opts+'\n\nNúmero (Enter = automático):'),10);
+  let variant='auto';
+  if(n>=1 && n<=CONCLUSAO_VARIANTES.length) variant=CONCLUSAO_VARIANTES[n-1].id;
+  ['pessoal','roteiro','implementacao'].forEach(k=>(c[k]||[]).forEach(t=>t.done=true));
+  if(!c.goLiveAt) c.goLiveAt=new Date().toISOString();
+  touch(c); addHistory(c,'Finalizado ('+variant+')'); schedulePosVenda(c); addXP('client_finalize',c.nome); playDing(); save();
+  const text=buildFinalizacaoText(c, variant);
+  navigator.clipboard.writeText(text).catch(()=>{});
+  showToast('Finalizado — conclusão copiada'); renderClientDetail(); renderSidebar();
+}
+
+function toggleArchive(id){const c=data.clients.find(x=>x.id===id);if(!c.archived){const note=prompt('Nota de handoff obrigatória ao arquivar:');if(note===null)return;if(!note.trim()){showToast('Handoff obrigatório');return}c.handoffNote=note.trim();addHistory(c,'Arquivado — '+note.trim().slice(0,80));c.archived=true}else{c.archived=false;addHistory(c,'Desarquivado')}save();selectedId=null;document.getElementById('emptyState').style.display='flex';document.getElementById('detailView').style.display='none';renderSidebar();showToast(c.archived?'Arquivado':'Desarquivado')}
+function showBitrixMenu(clientId){const list=data.bitrixTemplates||[];if(!list.length){showToast('Sem modelos');return}const n=parseInt(prompt(list.map((t,i)=>(i+1)+') '+t.titulo).join('\n')+'\nNúmero:'),10);if(!n||n<1||n>list.length)return;applyBitrixTemplate(list[n-1].id,clientId)}
+function applyBitrixTemplate(tplId,clientId){const tpl=(data.bitrixTemplates||[]).find(t=>t.id===tplId);const c=clientId?data.clients.find(x=>x.id===clientId):null;if(!tpl)return;let text=(tpl.texto||'').replace(/\{\{nome\}\}/g,c?c.nome:'…').replace(/\{\{codigo\}\}/g,c&&c.codigo?c.codigo:'…').replace(/\{\{motivo\}\}/g,'aguardando retorno').replace(/\{\{tipo\}\}/g,c&&c.tipo?c.tipo:'…');navigator.clipboard.writeText(text).then(()=>showToast('Bitrix copiado'))}
+
+function openClientModal(id){
+  const c=id?data.clients.find(x=>x.id===id):null;
+  document.getElementById('modal').style.display='flex';
+  document.getElementById('modal').innerHTML=`
+    <div class="modal-box" style="max-width:480px">
+      <h3>${c?'Editar':'Novo'} cliente</h3>
+      <input type="hidden" id="m_id" value="${c?c.id:''}" />
+      <div class="form-group">
+        <label>Nome / Responsável *</label>
+        <input id="m_nome" value="${c?escapeHtml(c.nome):''}" placeholder="Ex: João Silva" />
+      </div>
+      <div class="form-group">
+        <label>Código / ID principal</label>
+        <input id="m_codigo" value="${c?escapeHtml(c.codigo||''):''}" placeholder="Ex: 55315" />
+      </div>
+      <div class="form-group">
+        <label>Unidades adicionais (multi-unidade)</label>
+        <textarea id="m_unidades" style="min-height:70px" placeholder="Uma por linha: Nome da unidade | ID&#10;Ex: Texas Burguer Centro | 55316">${c&&c.unidades?escapeHtml(c.unidades.map(u=>u.nome+(u.id?' | '+u.id:'')).join('\n')):''}</textarea>
+        <div style="font-size:.7rem;color:var(--text-muted);margin-top:4px">Formato: Nome da unidade | ID (opcional). Tarefas ficam no mesmo perfil.</div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-success" onclick="saveClientModal()">Salvar</button>
+      </div>
+    </div>`;
+}
+function saveClientModal(){
+  const id=document.getElementById('m_id').value;
+  const nome=document.getElementById('m_nome').value.trim();
+  const codigo=document.getElementById('m_codigo').value.trim();
+  const unidadesRaw=document.getElementById('m_unidades').value.trim();
+  if(!nome){showToast('Nome obrigatório');return}
+  const unidades=unidadesRaw.split('\n').map(line=>{
+    const [n,i]=(line.split('|').map(x=>x.trim()));
+    return n?{nome:n,id:i||''}:null;
+  }).filter(Boolean);
+  const payload={nome,codigo,unidades};
+  if(id){
+    const i=data.clients.findIndex(x=>x.id===id);
+    if(i>=0) data.clients[i]={...data.clients[i],...payload,updatedAt:new Date().toISOString()};
+  } else {
+    data.clients.unshift(createClient(payload));
+  }
+  save();
+  closeModal();
+  renderSidebar();
+  if(selectedId===id) renderClientDetail();
+  showToast(id?'Cliente atualizado':'Cliente criado');
+}
+function onUfChange(){/* removed */}
+
+function renderDashboard(){showDetail();const m=computeMetrics();const alerts=[];(data.clients||[]).forEach(c=>{(c.alertas||[]).filter(a=>!a.done&&new Date(a.quando)<=new Date(Date.now()+86400000)).forEach(a=>alerts.push({c,a}))});const meuDia=(data.clients||[]).filter(isMeuDia);const backupBanner=needsWeeklyBackup()?`<div class="backup-banner"><span>💾 Backup semanal pendente</span><button class="btn btn-sm btn-success" onclick="exportData()">Baixar</button></div>`:'';document.getElementById('detailView').innerHTML=`<div class="main-header"><div class="main-header-info"><h2>Hoje</h2><div class="main-header-meta">Meu dia + alertas + SLA</div></div></div><div class="main-content">${backupBanner}<div class="info-grid"><div class="info-card"><div class="info-card-label">Ativos</div><div class="info-card-value">${m.activeClients}</div></div><div class="info-card"><div class="info-card-label">Go-lives</div><div class="info-card-value">${m.goLives}</div></div><div class="info-card"><div class="info-card-label">Meu dia</div><div class="info-card-value">${meuDia.length}</div></div><div class="info-card"><div class="info-card-label">SLA atraso</div><div class="info-card-value">${m.slaLateActive}</div></div><div class="info-card"><div class="info-card-label">XP</div><div class="info-card-value">${m.xp}</div></div><div class="info-card"><div class="info-card-label">Streak</div><div class="info-card-value">${m.streak}🔥</div></div></div>
+<h3 style="font-size:.9rem;margin:8px 0">Só meu dia</h3>${meuDia.slice(0,20).map(c=>`<div class="list-item" onclick="switchTab('clientes');setTimeout(()=>selectClient('${c.id}'),30)" style="border-left-color:${c.cor||'#3b82f6'}"><div class="list-item-title">${escapeHtml(c.nome)}</div><div class="list-item-meta">${progressOf(c).percent}% · ${getStatus(c)}</div></div>`).join('')||'<div class="empty-msg">Nada prioritário</div>'}
+<h3 style="font-size:.9rem;margin:12px 0 6px">Alertas 24h</h3>${alerts.slice(0,15).map(x=>`<div class="history-item"><div class="time">${fmt(x.a.quando)}</div>${escapeHtml(x.c.nome)} — ${escapeHtml(x.a.texto)}</div>`).join('')||'<div class="empty-msg">Nenhum</div>'}</div>`}
+
+function renderCarreira(){try{showDetail();ensureGamification();refreshBadges(false);const m=computeMetrics();const lv=currentLevel(m.xp);const w=computeWeekStats();const unlocked=new Set((data.gamification&&data.gamification.badgesUnlocked)||[]);
+const badges=BADGE_DEFS.map(b=>{const on=unlocked.has(b.id);return `<div class="badge-card ${on?'on':'off'}"><div class="badge-icon">${b.icon}</div><div class="badge-name">${escapeHtml(b.nome)}</div><div class="badge-desc">${escapeHtml(b.desc)}${on?' ✓':''}</div></div>`}).join('');
+const events=((data.gamification&&data.gamification.events)||[]).slice(0,8).map(e=>`<div class="history-item"><div class="time">${fmt(e.at)}</div><span style="color:#c4b5fd">+${e.xp} XP</span> · ${escapeHtml(e.label)}</div>`).join('')||'<div class="empty-msg">Faça um go-live ou conclua tarefas para ganhar XP</div>';
+const niveis=(CARREIRA.niveis||[]).map(n=>`<div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>${escapeHtml(n.nome)}</span><span class="chevron">▶</span></div><div class="section-body open"><p style="font-size:.85rem;margin-bottom:6px;color:#cbd5e1">${escapeHtml(n.objetivo)}</p><ul style="margin:0 0 0 16px;font-size:.82rem;color:#94a3b8">${(n.faz||[]).map(i=>'<li style="margin:3px 0">'+escapeHtml(i)+'</li>').join('')}</ul></div></div>`).join('');
+document.getElementById('detailView').innerHTML=`
+<div class="main-header"><div class="main-header-info"><h2>🎓 Carreira — Time de Onboarding</h2>
+<div class="main-header-meta">Playbook interno · níveis · XP · qualidade de entrega</div></div>
+<div class="main-header-actions"><button class="btn btn-sm btn-outline" onclick="renderCarreira()">↻ Atualizar</button></div></div>
+<div class="main-content">
+  <div class="xp-hero">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+      <div>
+        <div class="xp-level">Nível ${lv.cur.nivel} — ${escapeHtml(lv.cur.nome)}</div>
+        <div class="xp-sub">${lv.next?('Faltam <strong style="color:#e2e8f0">'+lv.need+' XP</strong> para '+escapeHtml(lv.next.nome)):'Você chegou ao topo 🏆'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:1.6rem;font-weight:800;color:#eab308">${m.xp}</div>
+        <div style="font-size:.7rem;color:#94a3b8">XP total</div>
+      </div>
+    </div>
+    <div class="xp-bar-wrap"><div class="xp-bar" style="width:${lv.pct}%"></div></div>
+    <div style="font-size:.72rem;color:#64748b">${lv.pct}% do nível atual</div>
+    <div class="xp-stats">
+      <div class="xp-stat"><div class="xp-stat-n">${m.streak}🔥</div><div class="xp-stat-l">Streak</div></div>
+      <div class="xp-stat"><div class="xp-stat-n">${m.goLives}</div><div class="xp-stat-l">Go-lives</div></div>
+      <div class="xp-stat"><div class="xp-stat-n">${m.trainingsDone}</div><div class="xp-stat-l">Treinos</div></div>
+      <div class="xp-stat"><div class="xp-stat-n">${m.wikiOwn}</div><div class="xp-stat-l">Wiki</div></div>
+    </div>
+  </div>
+  <div class="treino-group-title">📅 Esta semana</div>
+  <div class="week-rank">
+    <div class="xp-stat"><div class="xp-stat-n">${w.tasks}</div><div class="xp-stat-l">Tarefas</div></div>
+    <div class="xp-stat"><div class="xp-stat-n">${w.finals}</div><div class="xp-stat-l">Go-lives</div></div>
+    <div class="xp-stat"><div class="xp-stat-n">${w.trainings}</div><div class="xp-stat-l">Treinos</div></div>
+    <div class="xp-stat"><div class="xp-stat-n">${w.wiki}</div><div class="xp-stat-l">Wiki</div></div>
+    <div class="xp-stat"><div class="xp-stat-n">${w.xpWeek}</div><div class="xp-stat-l">XP semana</div></div>
+  </div>
+  <div class="treino-group-title">🏅 Conquistas</div>
+  <div class="badge-grid">${badges}</div>
+  <div class="treino-group-title">⚡ XP recente</div>
+  <div class="section-box"><div class="section-body open" style="display:block;border:none">${events}</div></div>
+  <div class="mission-card"><div class="info-card-label">Missão do time</div><div class="info-card-value" style="margin-top:4px">${escapeHtml(CARREIRA.missao)}</div></div>
+  <div class="info-grid" style="margin:10px 0">
+    <div class="info-card"><div class="info-card-label">Em andamento</div><div class="info-card-value">${m.inProgress}</div></div>
+    <div class="info-card"><div class="info-card-label">SLA atraso</div><div class="info-card-value">${m.slaLateActive}</div></div>
+    <div class="info-card"><div class="info-card-label">Fiscal OK</div><div class="info-card-value">${m.fiscalFilled}</div></div>
+    <div class="info-card"><div class="info-card-label">TEF</div><div class="info-card-value">${m.tefFilled}</div></div>
+  </div>
+  <div class="treino-group-title">📈 Níveis de carreira</div>${niveis}
+  <div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>📅 Roteiro do dia a dia</span><span class="chevron">▶</span></div>
+  <div class="section-body open"><ol style="margin:0 0 0 18px;font-size:.85rem;color:#cbd5e1">${(CARREIRA.roteiroDia||[]).map((p,i)=>'<li style="margin:4px 0"><strong style="color:#94a3b8">'+(i+1)+'.</strong> '+escapeHtml(p)+'</li>').join('')}</ol></div></div>
+  <div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>⚠️ Erros comuns a evitar</span><span class="chevron">▶</span></div>
+  <div class="section-body open">${(CARREIRA.errosComuns||[]).map(e=>`<div class="check-item" style="flex-direction:column;padding:8px 0"><div class="check-text"><strong style="color:#fca5a5">${escapeHtml(e.erro)}</strong></div><div class="check-note">→ ${escapeHtml(e.evita)}</div></div>`).join('')}</div></div>
+</div>`;
+}catch(err){showDetail();document.getElementById('detailView').innerHTML=`<div class="main-content"><div class="info-card wide"><div class="info-card-label">Erro</div><div class="info-card-value">${escapeHtml(String(err.message||err))}</div><button class="btn btn-sm btn-outline" onclick="renderCarreira()">Tentar</button></div></div>`}}
+
+function allScriptTags(){
+  const set=new Set();
+  (data.scripts||[]).forEach(s=>(s.tags||[]).forEach(t=>set.add(t)));
+  (data.scriptTagsManaged||[]).forEach(t=>set.add(t));
+  return Array.from(set).sort();
+}
+function ensureScriptTagsManaged(){ if(!data.scriptTagsManaged) data.scriptTagsManaged=[]; }
+function selectScript(id){
+  selectedId=id;
+  selectedType='script';
+  renderScriptsHome();
+  renderSidebar();
+  // Scroll the selected card into view if possible
+  setTimeout(()=>{
+    const el=document.querySelector(`.info-card[data-sid="${id}"]`);
+    if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+  },50);
+}
+function openTagManager(){
+  ensureScriptTagsManaged();
+  const tags = allScriptTags();
+  document.getElementById('modal').style.display='flex';
+  document.getElementById('modal').innerHTML=`
+    <div class="modal-box" style="max-width:420px">
+      <h3>Gerenciar Tags</h3>
+      <div style="margin-bottom:12px;display:flex;gap:6px">
+        <input id="newTagInput" placeholder="Nova tag" style="flex:1" onkeydown="if(event.key==='Enter')addManagedTag()"/>
+        <button class="btn btn-sm btn-success" onclick="addManagedTag()">+</button>
+      </div>
+      <div style="max-height:280px;overflow:auto;margin-bottom:12px">
+        ${tags.map(t=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
+            <span>${escapeHtml(t)}</span>
+            <div style="display:flex;gap:4px">
+              <button class="btn btn-sm btn-outline" onclick="renameManagedTag('${escapeHtml(t)}')">✏️</button>
+              <button class="btn btn-sm btn-outline" style="color:var(--danger)" onclick="deleteManagedTag('${escapeHtml(t)}')">🗑️</button>
+            </div>
+          </div>`).join('') || '<div class="empty-msg">Nenhuma tag</div>'}
+      </div>
+      <div style="display:flex;justify-content:flex-end"><button class="btn btn-outline" onclick="closeModal()">Fechar</button></div>
+    </div>`;
+}
+function addManagedTag(){
+  const name=(document.getElementById('newTagInput').value||'').trim().toLowerCase();
+  if(!name) return;
+  ensureScriptTagsManaged();
+  if(!data.scriptTagsManaged.includes(name)) data.scriptTagsManaged.push(name);
+  save();
+  openTagManager();
+}
+function renameManagedTag(oldName){
+  const newName=prompt('Novo nome da tag:', oldName);
+  if(!newName || !newName.trim() || newName.trim()===oldName) return;
+  const clean=newName.trim().toLowerCase();
+  (data.scripts||[]).forEach(s=>{ if(s.tags) s.tags=s.tags.map(t=>t===oldName?clean:t); });
+  ensureScriptTagsManaged();
+  data.scriptTagsManaged=data.scriptTagsManaged.map(t=>t===oldName?clean:t);
+  if(!data.scriptTagsManaged.includes(clean)) data.scriptTagsManaged.push(clean);
+  save();
+  openTagManager();
+  showToast('Tag renomeada');
+}
+function deleteManagedTag(name){
+  if(!confirm('Remover a tag "'+name+'" de todos os scripts?')) return;
+  (data.scripts||[]).forEach(s=>{ if(s.tags) s.tags=s.tags.filter(t=>t!==name); });
+  ensureScriptTagsManaged();
+  data.scriptTagsManaged=data.scriptTagsManaged.filter(t=>t!==name);
+  save();
+  openTagManager();
+  showToast('Tag removida');
+}
+function setScriptTag(tag){
+  data.scriptTagFilter = tag || '';
+  renderScriptsHome();
+  renderSidebar();
+}
+function renderScriptsHome(){
+  showDetail();
+  const q=((document.getElementById('searchInput')||{}).value||'').toLowerCase().trim();
+  const tag=data.scriptTagFilter||'';
+  let list=data.scripts||[];
+  if(tag) list=list.filter(s=>(s.tags||[]).includes(tag));
+  if(q) list=list.filter(s=>((s.titulo||'')+' '+(s.texto||'')+' '+(s.tags||[]).join(' ')).toLowerCase().includes(q));
+
+  // Group by main category for better organization
+  const groups = {
+    'geral': '📋 Geral / Onboarding',
+    'cardápio': '🍽️ Cardápio',
+    'integrações': '🔗 Integrações',
+    'presencial': '🏪 Presencial / PDV',
+    'impressão': '🖨️ Impressão',
+    'estoque': '📦 Estoque',
+    'fiscal': '🧾 Fiscal',
+    'marketing': '📢 Marketing',
+    'troubleshooting': '🔧 Troubleshooting'
+  };
+
+  const tags=allScriptTags();
+  const tagOptions='<option value="">Todas as categorias</option>'+Object.entries(groups).map(([k,v])=>`<option value="${k}" ${tag===k?'selected':''}>${v}</option>`).join('');
+
+  let html = '';
+  if(tag && groups[tag]){
+    html = list.map(s=>renderScriptCard(s)).join('');
+  } else {
+    // Show grouped when no filter
+    const grouped = {};
+    list.forEach(s=>{
+      const main = (s.tags||[]).find(t=>groups[t]) || 'outros';
+      if(!grouped[main]) grouped[main]=[];
+      grouped[main].push(s);
+    });
+    Object.entries(groups).forEach(([key, label])=>{
+      if(grouped[key] && grouped[key].length){
+        html += `<div style="margin:14px 0 6px;font-size:.75rem;color:var(--text-muted);font-weight:600">${label}</div>`;
+        html += grouped[key].map(s=>renderScriptCard(s)).join('');
+      }
+    });
+    if(grouped['outros']) html += grouped['outros'].map(s=>renderScriptCard(s)).join('');
+  }
+
+  document.getElementById('detailView').innerHTML=`
+    <div class="main-header">
+      <div class="main-header-info"><h2>Scripts</h2><div class="main-header-meta">${list.length} scripts</div></div>
+      <div class="main-header-actions">
+        <button class="btn btn-sm btn-outline" onclick="openTagManager()">Tags</button>
+        <button class="btn btn-sm btn-success" onclick="openScriptModal()">+ Novo</button>
+      </div>
+    </div>
+    <div class="main-content">
+      <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+        <label style="font-size:.75rem;color:var(--text-muted)">Categoria:</label>
+        <select onchange="setScriptTag(this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;min-width:200px">${tagOptions}</select>
+      </div>
+      ${html || '<div class="empty-msg">Nenhum script</div>'}
+    </div>`;
+}
+function renderScriptCard(s){
+  const active = selectedId===s.id ? 'border-left:4px solid var(--primary);' : '';
+  const images = s.images || [];
+  const gallery = images.length ? `
+    <div style="display:flex;gap:8px;margin-top:8px;overflow-x:auto;padding:4px 0">
+      ${images.map((url,i)=>`
+        <div style="flex:0 0 auto;position:relative">
+          <img src="${escapeHtml(url)}" style="height:90px;border-radius:6px;border:1px solid var(--border);cursor:pointer;object-fit:cover" onclick="copyImageLink('${escapeHtml(url)}')" oncontextmenu="event.preventDefault();window.open('${escapeHtml(url)}','_blank')" title="Clique para copiar | Botão direito abre a imagem" />
+          <div style="position:absolute;bottom:2px;left:2px;background:rgba(0,0,0,.6);color:#fff;font-size:.65rem;padding:1px 4px;border-radius:3px">IMAG ${i+1}</div>
+        </div>`).join('')}
+    </div>` : '';
+  return `<div class="info-card wide" data-sid="${s.id}" style="margin-bottom:8px;${active}">
+    <div class="info-card-label">${escapeHtml(s.titulo)}</div>
+    <div class="info-card-value" style="font-size:.82rem;white-space:pre-wrap">${escapeHtml(s.texto)}</div>
+    ${gallery}
+    <div style="margin-top:4px">${(s.tags||[]).map(t=>`<span class="tag-chip" onclick="setScriptTag('${escapeHtml(t)}')">${escapeHtml(t)}</span>`).join('')}</div>
+    <div style="display:flex;gap:4px;margin-top:6px">
+      <button class="btn btn-sm btn-success" onclick="copyScript('${s.id}')">📋 Copiar</button>
+      <button class="btn btn-sm btn-outline" onclick="openScriptModal('${s.id}')">✏️ Editar</button>
+      <button class="btn btn-sm btn-outline" style="color:var(--danger)" onclick="deleteScript('${s.id}')">🗑️</button>
+    </div>
+  </div>`;
+}
+function copyImageLink(url){
+  showToast('Copiando imagem...');
+  const doCopy = (blob) => {
+    if(!navigator.clipboard || !window.ClipboardItem){
+      showToast('Seu navegador não permite copiar imagem. Use botão direito → Copiar imagem');
+      return;
+    }
+    const item = new ClipboardItem({ [blob.type || 'image/png']: blob });
+    navigator.clipboard.write([item])
+      .then(() => showToast('Imagem copiada! Cole com Ctrl+V'))
+      .catch(err => {
+        console.warn(err);
+        showToast('Não foi possível copiar. Tente botão direito na imagem → Copiar imagem');
+      });
+  };
+
+  if(url.startsWith('data:')){
+    fetch(url).then(r => r.blob()).then(doCopy).catch(() => showToast('Erro ao processar imagem'));
+  } else {
+    fetch(url).then(r => r.blob()).then(doCopy).catch(() => showToast('Erro ao baixar imagem'));
+  }
+}
+function openScriptModal(id){
+  const s=id?(data.scripts||[]).find(x=>x.id===id):null;
+  const allTags=allScriptTags();
+  const selected=s?(s.tags||[]):[];
+  const currentImages = s && s.images ? s.images : [];
+  document.getElementById('modal').style.display='flex';
+  document.getElementById('modal').innerHTML=`
+    <div class="modal-box">
+      <h3>${s?'Editar script':'Novo script'}</h3>
+      <input type="hidden" id="m_sid" value="${s?s.id:''}"/>
+      <div class="form-group"><label>Título</label><input id="m_st" value="${s?escapeHtml(s.titulo):''}"/></div>
+      <div class="form-group"><label>Texto</label><textarea id="m_sx" style="min-height:100px">${s?escapeHtml(s.texto||''):''}</textarea></div>
+      <div class="form-group">
+        <label>Imagens (arraste e solte)</label>
+        <div id="dropZone" style="border:2px dashed var(--border);border-radius:8px;padding:16px;text-align:center;color:var(--text-muted);cursor:pointer;background:var(--bg)">
+          Arraste imagens aqui ou clique para selecionar
+          <input type="file" id="imgFile" accept="image/*" multiple style="display:none" />
+        </div>
+        <div id="imgPreview" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+          ${currentImages.map((src,i)=>`<div style="position:relative"><img src="${src}" style="height:60px;border-radius:4px;border:1px solid var(--border)" /><button type="button" onclick="removePreview(${i})" style="position:absolute;top:-6px;right:-6px;background:#ef4444;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer">×</button></div>`).join('')}
+        </div>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;justify-content:space-between">Tags <button type="button" class="btn btn-sm btn-outline" onclick="openTagManager()">Gerenciar</button></label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;max-height:120px;overflow:auto;padding:4px;border:1px solid var(--border);border-radius:6px">
+          ${allTags.map(t=>`<label style="display:flex;align-items:center;gap:4px;font-size:.8rem;background:var(--bg);padding:3px 8px;border-radius:12px;cursor:pointer"><input type="checkbox" class="tag-check" value="${escapeHtml(t)}" ${selected.includes(t)?'checked':''}/>${escapeHtml(t)}</label>`).join('')||'<span style="color:var(--text-muted);font-size:.8rem">Nenhuma tag.</span>'}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-success" onclick="saveScriptModal()">Salvar</button>
+      </div>
+    </div>`;
+  // Setup drop
+  const zone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('imgFile');
+  zone.onclick = () => fileInput.click();
+  zone.ondragover = e => { e.preventDefault(); zone.style.borderColor='var(--primary)'; };
+  zone.ondragleave = () => zone.style.borderColor='var(--border)';
+  zone.ondrop = e => {
+    e.preventDefault();
+    zone.style.borderColor='var(--border)';
+    handleFiles(e.dataTransfer.files);
+  };
+  fileInput.onchange = e => handleFiles(e.target.files);
+  window._scriptImages = currentImages.slice();
+}
+function handleFiles(files){
+  Array.from(files).forEach(file => {
+    if(!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      window._scriptImages.push(e.target.result);
+      refreshPreview();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function refreshPreview(){
+  const cont = document.getElementById('imgPreview');
+  if(!cont) return;
+  cont.innerHTML = window._scriptImages.map((src,i)=>`
+    <div style="position:relative;display:inline-flex;flex-direction:column;align-items:center">
+      <img src="${src}" style="height:60px;border-radius:4px;border:1px solid var(--border)" />
+      <div style="display:flex;gap:2px;margin-top:2px">
+        <button type="button" onclick="moveImage(${i},-1)" style="font-size:10px;padding:1px 4px">↑</button>
+        <button type="button" onclick="moveImage(${i},1)" style="font-size:10px;padding:1px 4px">↓</button>
+        <button type="button" onclick="removePreview(${i})" style="background:#ef4444;color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:10px;cursor:pointer">×</button>
+      </div>
+    </div>`).join('');
+}
+function moveImage(i, dir){
+  const arr = window._scriptImages;
+  const ni = i + dir;
+  if(ni<0 || ni>=arr.length) return;
+  const tmp = arr[i];
+  arr[i] = arr[ni];
+  arr[ni] = tmp;
+  refreshPreview();
+}
+function removePreview(i){
+  window._scriptImages.splice(i,1);
+  refreshPreview();
+}
+function saveScriptModal(){
+  const id=document.getElementById('m_sid').value;
+  const titulo=document.getElementById('m_st').value.trim();
+  const texto=document.getElementById('m_sx').value.trim();
+  const tags=Array.from(document.querySelectorAll('.tag-check:checked')).map(el=>el.value);
+  const images = window._scriptImages || [];
+  if(!titulo){showToast('Título obrigatório');return}
+  if(id){
+    const i=data.scripts.findIndex(x=>x.id===id);
+    if(i>=0) data.scripts[i]={...data.scripts[i],titulo,texto,tags,images};
+  } else {
+    data.scripts.unshift({id:uid(),titulo,texto,tags,images});
+  }
+  save();
+  closeModal();
+  renderScriptsHome();
+  renderSidebar();
+  showToast(id?'Script atualizado':'Script criado');
+}
+function copyScript(id){
+  const s=(data.scripts||[]).find(x=>x.id===id);
+  if(!s) return;
+  navigator.clipboard.writeText(s.texto).then(()=>{
+    showToast('Script copiado!');
+  }).catch(()=>{
+    const ta=document.createElement('textarea');
+    ta.value=s.texto;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Script copiado!');
+  });
+}
+function moveScript(id, dir){
+  const idx = data.scripts.findIndex(s=>s.id===id);
+  if(idx<0) return;
+  const newIdx = idx + dir;
+  if(newIdx<0 || newIdx>=data.scripts.length) return;
+  const [item] = data.scripts.splice(idx,1);
+  data.scripts.splice(newIdx,0,item);
+  save();
+  renderScriptsHome();
+  renderSidebar();
+}
+function deleteScript(id){
+  if(!confirm('Excluir este script?')) return;
+  data.scripts=(data.scripts||[]).filter(x=>x.id!==id);
+  save();
+  renderScriptsHome();
+  renderSidebar();
+  showToast('Script excluído');
+}
+
+// === IMPOSTOS (NCM / CEST / CFOP) ===
+const IMPOSTOS_DATA = [
+  { produto: "Açaí", ncm: "20079921", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Balas", ncm: "17049020", cest: "2804100", cfop: "5102", csosn: "102", cst: "49", st: true },
+  { produto: "Barbecue", ncm: "21039091", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Batata frita", ncm: "20052000", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Bolos", ncm: "19052090", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Cafés/Cappuccinos", ncm: "21011200", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Cerveja Garrafa", ncm: "22030000", cest: "0302101", cfop: "5405", csosn: "500", cst: "49", st: true },
+  { produto: "Cerveja Lata", ncm: "22030000", cest: "0302103", cfop: "5405", csosn: "500", cst: "49", st: true },
+  { produto: "Chiclete", ncm: "21069050", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Chocolates", ncm: "18069000", cest: "1700900", cfop: "5102", csosn: "102", cst: "49", st: true },
+  { produto: "Chocolates em barra", ncm: "18069000", cest: "1700300", cfop: "5102", csosn: "102", cst: "49", st: true },
+  { produto: "Chá", ncm: "09021000", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Chá gelado", ncm: "21012010", cest: "1710801", cfop: "5405", csosn: "500", cst: "49", st: true },
+  { produto: "Cookie", ncm: "19053100", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Destilados/Doses", ncm: "22060090", cest: "2804100", cfop: "5405", csosn: "500", cst: "49", st: true },
+  { produto: "Drinks", ncm: "22089000", cest: "0200200", cfop: "5102", csosn: "102", cst: "49", st: true },
+  { produto: "Energético", ncm: "22029900", cest: "0301300", cfop: "5405", csosn: "500", cst: "49", st: true },
+  { produto: "Espumante/Champagne", ncm: "22041090", cest: "0202400", cfop: "5405", csosn: "500", cst: "49", st: true },
+  { produto: "Hambúrguer", ncm: "19059090", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Maionese", ncm: "21039011", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Milkshake/Sorvetes", ncm: "21069029", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Onion Rings/Anel de cebola", ncm: "20049000", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Pizza", ncm: "19023000", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Pratos/Refeições/Sopa", ncm: "21069090", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Queijo", ncm: "04069020", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Refrigerante Garrafa", ncm: "22021000", cest: "0300700", cfop: "5405", csosn: "500", cst: "49", st: true },
+  { produto: "Refrigerante Lata", ncm: "22021000", cest: "0301002", cfop: "5405", csosn: "500", cst: "49", st: true },
+  { produto: "Salgados", ncm: "19022000", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Suco Industrializado", ncm: "22029900", cest: "1711200", cfop: "5405", csosn: "500", cst: "49", st: true },
+  { produto: "Suco Natural", ncm: "20091900", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Sushi", ncm: "16042090", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false },
+  { produto: "Vinhos", ncm: "22042910", cest: "0202400", cfop: "5405", csosn: "500", cst: "49", st: true },
+  { produto: "Água", ncm: "22011000", cest: "0300200", cfop: "5405", csosn: "500", cst: "49", st: true },
+  { produto: "Água de coco", ncm: "20098921", cest: "", cfop: "5102", csosn: "102", cst: "49", st: false }
+];
+
+function isST(item){ return item.st || item.cfop==="5405" || item.csosn==="500" || (item.cest && item.cest.trim()!==""); }
+
+function renderImpostosHome(){
+  showDetail();
+  const q = ((document.getElementById('searchInput')||{}).value||'').toLowerCase().trim();
+  const filter = data.impostosFilter || 'all';
+  let list = IMPOSTOS_DATA.map((d,i)=>({...d, _idx:i}));
+  if(filter==='normal') list = list.filter(d=>!isST(d));
+  if(filter==='st') list = list.filter(d=>isST(d));
+  if(q) list = list.filter(d => d.produto.toLowerCase().includes(q) || d.ncm.includes(q) || (d.cest||'').includes(q) || d.cfop.includes(q));
+
+  const total = IMPOSTOS_DATA.length;
+  const stCount = IMPOSTOS_DATA.filter(isST).length;
+
+  document.getElementById('detailView').innerHTML = `
+    <div class="main-header">
+      <div class="main-header-info"><h2>Tabela de Impostos</h2><div class="main-header-meta">NCM · CEST · CFOP · CSOSN · CST</div></div>
+    </div>
+    <div class="main-content">
+      <div class="info-grid" style="margin-bottom:12px">
+        <div class="info-card"><div class="info-card-label">Total</div><div class="info-card-value">${total}</div></div>
+        <div class="info-card"><div class="info-card-label">Normal</div><div class="info-card-value">${total-stCount}</div></div>
+        <div class="info-card"><div class="info-card-label">Com ST</div><div class="info-card-value">${stCount}</div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-sm ${filter==='all'?'btn-success':'btn-outline'}" onclick="setImpostosFilter('all')">Todos</button>
+        <button class="btn btn-sm ${filter==='normal'?'btn-success':'btn-outline'}" onclick="setImpostosFilter('normal')">Sem ST</button>
+        <button class="btn btn-sm ${filter==='st'?'btn-success':'btn-outline'}" onclick="setImpostosFilter('st')">Com ST</button>
+      </div>
+      <div class="table-wrap" style="overflow:auto;max-height:calc(100vh - 280px)">
+        <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+          <thead style="position:sticky;top:0;background:var(--bg-card)">
+            <tr>
+              <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Produto</th>
+              <th style="padding:8px;border-bottom:1px solid var(--border)">NCM</th>
+              <th style="padding:8px;border-bottom:1px solid var(--border)">CEST</th>
+              <th style="padding:8px;border-bottom:1px solid var(--border)">CFOP</th>
+              <th style="padding:8px;border-bottom:1px solid var(--border)">CSOSN</th>
+              <th style="padding:8px;border-bottom:1px solid var(--border)">CST</th>
+              <th style="padding:8px;border-bottom:1px solid var(--border)">ST</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map(item=>{
+              const st = isST(item);
+              const copyBtn = (val, tip) => val ? `<span class="code" style="cursor:pointer;background:var(--bg);border:1px solid var(--border);padding:2px 6px;border-radius:4px;font-family:monospace" onclick="copyText('${val}')" title="${tip}">${val}</span>` : '<span style="color:var(--text-muted)">—</span>';
+              return `<tr style="${st?'background:rgba(210,153,34,.12)':''}">
+                <td style="padding:6px 8px;font-weight:600">${escapeHtml(item.produto)}</td>
+                <td style="padding:6px 8px;text-align:center">${copyBtn(item.ncm,'NCM')}</td>
+                <td style="padding:6px 8px;text-align:center">${copyBtn(item.cest,'CEST')}</td>
+                <td style="padding:6px 8px;text-align:center">${copyBtn(item.cfop,'CFOP')}</td>
+                <td style="padding:6px 8px;text-align:center">${copyBtn(item.csosn,'CSOSN')}</td>
+                <td style="padding:6px 8px;text-align:center">${copyBtn(item.cst,'CST')}</td>
+                <td style="padding:6px 8px;text-align:center">${st?'<span class="badge" style="background:rgba(210,153,34,.3);color:#e3b341">⚡ ST</span>':'<span class="badge" style="background:var(--accent-soft);color:var(--accent)">Normal</span>'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="legend" style="margin-top:12px;font-size:.8rem;color:var(--text-muted)">
+        <strong>Dica:</strong> Clique em qualquer código para copiar. Produtos com ST (Substituição Tributária) usam CFOP 5405 e CSOSN 500.
+      </div>
+    </div>`;
+}
+function setImpostosFilter(f){
+  data.impostosFilter = f;
+  renderImpostosHome();
+}
+function copyText(text){
+  if(!text) return;
+  navigator.clipboard.writeText(text).then(()=>showToast('✓ '+text+' copiado')).catch(()=>{
+    const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast('✓ '+text+' copiado');
+  });
+}
+
+function allWikiTags(){const set=new Set();(data.casos||[]).forEach(c=>(c.tags||[]).forEach(t=>set.add(t)));return Array.from(set).sort()}
+function setWikiTag(tag){data.wikiTagFilter=(data.wikiTagFilter===tag)?'':tag;renderCasosHome()}
+function renderCasosHome(){showDetail();const q=((document.getElementById('searchInput')||{}).value||'').toLowerCase();const tag=data.wikiTagFilter||'';let list=data.casos||[];if(tag)list=list.filter(c=>(c.tags||[]).includes(tag));if(q)list=list.filter(c=>(c.titulo||'').toLowerCase().includes(q)||(c.texto||'').toLowerCase().includes(q)||(c.solucao||'').toLowerCase().includes(q));const chips=allWikiTags().map(t=>`<span class="tag-chip ${tag===t?'active':''}" onclick="setWikiTag('${escapeHtml(t)}')">${escapeHtml(t)}</span>`).join('');document.getElementById('detailView').innerHTML=`<div class="main-header"><div class="main-header-info"><h2>Wiki</h2><div class="main-header-meta">${list.length} artigos</div></div><div class="main-header-actions"><button class="btn btn-sm btn-success" onclick="openCasoModal()">+</button></div></div><div class="main-content"><div style="margin-bottom:10px">${chips}</div>${list.map(c=>`<div class="info-card wide" style="margin-bottom:8px;cursor:pointer" onclick="selectCaso('${c.id}')"><div class="info-card-label">${escapeHtml(c.titulo)}</div><div class="info-card-value" style="font-size:.8rem">${escapeHtml((c.texto||'').slice(0,120))}</div><div>${(c.tags||[]).map(t=>`<span class="tag-chip" onclick="event.stopPropagation();setWikiTag('${escapeHtml(t)}')">${escapeHtml(t)}</span>`).join('')}</div></div>`).join('')||'<div class="empty-msg">—</div>'}</div>`}
+function selectCaso(id){const c=data.casos.find(x=>x.id===id);if(!c)return;selectedId=id;selectedType='caso';showDetail();document.getElementById('detailView').innerHTML=`<div class="main-header"><div class="main-header-info"><h2>${escapeHtml(c.titulo)}</h2></div><div class="main-header-actions"><button class="btn btn-sm btn-outline" onclick="openCasoModal('${c.id}')">Editar</button><button class="btn btn-sm btn-outline" onclick="renderCasosHome()">Voltar</button></div></div><div class="main-content"><div class="info-card wide"><div class="info-card-label">Resumo</div><div class="info-card-value" style="white-space:pre-wrap">${escapeHtml(c.texto||'')}</div></div><div class="info-card wide" style="margin-top:8px"><div class="info-card-label">Solução</div><div class="info-card-value" style="white-space:pre-wrap">${escapeHtml(c.solucao||'')}</div></div></div>`;renderSidebar()}
+function openCasoModal(id){const c=id?data.casos.find(x=>x.id===id):null;document.getElementById('modal').style.display='flex';document.getElementById('modal').innerHTML=`<div class="modal-box"><h3>Artigo</h3><input type="hidden" id="m_id" value="${c?c.id:''}"/><div class="form-group"><label>Título</label><input id="m_titulo" value="${c?escapeHtml(c.titulo):''}"/></div><div class="form-group"><label>Resumo</label><textarea id="m_texto">${c?escapeHtml(c.texto||''):''}</textarea></div><div class="form-group"><label>Solução</label><textarea id="m_solucao" style="min-height:120px">${c?escapeHtml(c.solucao||''):''}</textarea></div><div class="form-group"><label>Tags</label><input id="m_tags" value="${c?(c.tags||[]).join(', '):''}"/></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-outline" onclick="closeModal()">Cancelar</button><button class="btn btn-success" onclick="saveCasoModal()">Salvar</button></div></div>`}
+function saveCasoModal(){const id=document.getElementById('m_id').value;const titulo=document.getElementById('m_titulo').value.trim();if(!titulo)return;const now=new Date().toISOString();const payload={titulo,texto:document.getElementById('m_texto').value.trim(),solucao:document.getElementById('m_solucao').value.trim(),tags:document.getElementById('m_tags').value.split(',').map(s=>s.trim()).filter(Boolean),updatedAt:now};if(id){const i=data.casos.findIndex(x=>x.id===id);data.casos[i]={...data.casos[i],...payload}}else{data.casos.unshift({id:uid(),createdAt:now,seed:false,...payload});addXP('wiki_create',titulo)}save();closeModal();renderCasosHome();renderSidebar()}
+
+function renderTreinoHome(){showDetail();document.getElementById('detailView').innerHTML=`<div class="main-header"><div class="main-header-info"><h2>Treinos</h2></div><div class="main-header-actions"><button class="btn btn-sm btn-success" onclick="startNewTraining()">+</button></div></div><div class="main-content">${(data.trainings||[]).map(t=>{const p=treinoProgress(t);return `<div class="info-card wide" style="margin-bottom:8px;cursor:pointer" onclick="selectTraining('${t.id}')"><div class="info-card-label">${escapeHtml(t.clientName||'Treino')}</div><div class="info-card-value">${p.done}/${p.total} (${p.percent}%)</div></div>`}).join('')||'<div class="empty-msg">—</div>'}</div>`}
+
+function getAllTrainSessions(){
+  const a=(data.trainings||[]).map(t=>({...t, kind:'rapido'}));
+  const b=(data.manualSessions||[]).map(t=>({...t, kind:'manual'}));
+  return a.concat(b).sort((x,y)=>new Date(y.updatedAt||y.createdAt||y.startedAt||0)-new Date(x.updatedAt||x.createdAt||x.startedAt||0));
+}
+function openTrainSession(id, kind){
+  if(kind==='manual') selectManual(id);
+  else selectTraining(id);
+}
+function startNewTraining(){
+  const opts=(data.clients||[]).filter(c=>!c.archived).map(c=>`<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
+  document.getElementById('modal').style.display='flex';
+  document.getElementById('modal').innerHTML=`<div class="modal-box"><h3>Nova sessão de treinamento</h3>
+    <div class="form-group"><label>Cliente</label><select id="m_t_client"><option value="">— avulso —</option>${opts}</select></div>
+    <div class="form-group"><label>Nome (se avulso)</label><input id="m_t_name" placeholder="Ex.: Treino loja centro" /></div>
+    <div class="form-group"><label>Modelo do roteiro</label>
+      <select id="m_t_modelo" onchange="onTrainModeloChange()">
+        <option value="manual">📘 Manual oficial BeeFood (9 seções)</option>
+        <option value="rapido">⚡ Checklist rápido</option>
+      </select>
+    </div>
+    <div class="form-group" id="m_t_tipo_wrap" style="display:none"><label>Tipo do checklist rápido</label>
+      <select id="m_t_tipo"><option value="completo">Completo</option><option value="delivery">Só delivery</option><option value="mesas">Só mesas</option><option value="inicio">Só início</option></select>
+    </div>
+    <p style="font-size:.75rem;color:var(--text-muted);margin:6px 0 10px">Depois você pode trocar o modelo, limpar o checklist ou cancelar a sessão.</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-success" onclick="createTrainingUnified()">Iniciar</button>
+    </div></div>`;
+}
+function onTrainModeloChange(){
+  const m=document.getElementById('m_t_modelo').value;
+  const w=document.getElementById('m_t_tipo_wrap');
+  if(w) w.style.display = m==='rapido' ? 'block' : 'none';
+}
+function createTrainingUnified(){
+  const clientId=document.getElementById('m_t_client').value;
+  let name=(document.getElementById('m_t_name').value||'').trim();
+  if(clientId){ const cl=data.clients.find(c=>c.id===clientId); if(cl) name=cl.nome; }
+  if(!name) name='Sessão de treino';
+  const modelo=document.getElementById('m_t_modelo').value||'manual';
+  const now=new Date().toISOString();
+  if(modelo==='manual'){
+    if(!data.manualSessions) data.manualSessions=[];
+    const s={id:uid(),clientId,clientName:name,done:{},createdAt:now,updatedAt:now};
+    data.manualSessions.unshift(s); save(); closeModal(); selectManual(s.id);
+  } else {
+    const tipo=document.getElementById('m_t_tipo').value||'completo';
+    if(!data.trainings) data.trainings=[];
+    const t={id:uid(),clientId,clientName:name,tipo,done:{},startedAt:now,updatedAt:now,timerSeconds:0,timerRunning:false,timerStartedAt:null};
+    data.trainings.unshift(t); addXP('training_start',name); save(); closeModal(); selectTraining(t.id);
+  }
+}
+function cancelTrainSession(id, kind){
+  if(!confirm('Cancelar e excluir esta sessão de treinamento?')) return;
+  if(kind==='manual') data.manualSessions=(data.manualSessions||[]).filter(x=>x.id!==id);
+  else data.trainings=(data.trainings||[]).filter(x=>x.id!==id);
+  save(); selectedId=null; selectedType=null; renderTreinoHome(); renderSidebar(); showToast('Sessão cancelada');
+}
+function convertTrainSession(id, kind, newKind){
+  if(kind===newKind) return;
+  if(!confirm(newKind==='manual'?'Trocar para Manual oficial? O progresso do checklist rápido será perdido.':'Trocar para checklist rápido? O progresso do manual será perdido.')) return;
+  if(kind==='manual'){
+    const s=(data.manualSessions||[]).find(x=>x.id===id); if(!s) return;
+    data.manualSessions=data.manualSessions.filter(x=>x.id!==id);
+    if(!data.trainings) data.trainings=[];
+    const t={id:uid(),clientId:s.clientId,clientName:s.clientName,tipo:'completo',done:{},startedAt:new Date().toISOString(),updatedAt:new Date().toISOString(),timerSeconds:0,timerRunning:false,timerStartedAt:null};
+    data.trainings.unshift(t); save(); selectTraining(t.id); showToast('Trocado para checklist rápido');
+  } else {
+    const t=(data.trainings||[]).find(x=>x.id===id); if(!t) return;
+    data.trainings=data.trainings.filter(x=>x.id!==id);
+    if(!data.manualSessions) data.manualSessions=[];
+    const s={id:uid(),clientId:t.clientId,clientName:t.clientName,done:{},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+    data.manualSessions.unshift(s); save(); selectManual(s.id); showToast('Trocado para Manual oficial');
+  }
+}
+function changeRapidoTipo(id){
+  const t=(data.trainings||[]).find(x=>x.id===id); if(!t) return;
+  const novo=prompt('Tipo: completo | delivery | mesas | inicio', t.tipo||'completo');
+  if(!novo) return;
+  const ok=['completo','delivery','mesas','inicio'];
+  if(!ok.includes(novo.trim())){ showToast('Tipo inválido'); return; }
+  if(!confirm('Trocar tipo para '+novo+'? Itens já marcados que não existirem no novo tipo ficam guardados, mas a lista muda.')) return;
+  t.tipo=novo.trim(); t.updatedAt=new Date().toISOString(); save(); selectTraining(id); showToast('Tipo atualizado');
+}
+function renderTreinoHome(){
+  showDetail();
+  const list=getAllTrainSessions();
+  document.getElementById('detailView').innerHTML=`
+    <div class="main-header"><div class="main-header-info"><h2>🎓 Treinamentos</h2>
+      <div class="main-header-meta">Um só lugar: Manual oficial ou checklist rápido</div></div>
+      <div class="main-header-actions"><button class="btn btn-sm btn-success" onclick="startNewTraining()">+ Nova sessão</button></div></div>
+    <div class="main-content">
+      <div class="info-grid" style="margin-bottom:12px">
+        <div class="info-card" style="border-left:4px solid var(--accent)"><div class="info-card-label">📘 Manual oficial</div><div class="info-card-value" style="font-size:.8rem">9 seções do roteiro BeeFood (diagnóstico → protocolo final)</div></div>
+        <div class="info-card" style="border-left:4px solid var(--primary)"><div class="info-card-label">⚡ Checklist rápido</div><div class="info-card-value" style="font-size:.8rem">Completo, delivery, mesas ou só início + cronômetro</div></div>
+      </div>
+      ${list.map(s=>{
+        const p=s.kind==='manual'?manualProgress(s):treinoProgress(s);
+        const label=s.kind==='manual'?'Manual oficial':('Rápido · '+(s.tipo||'completo'));
+        return `<div class="info-card wide" style="margin-bottom:8px;cursor:pointer" onclick="openTrainSession('${s.id}','${s.kind}')">
+          <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center">
+            <div>
+              <div class="info-card-label">${escapeHtml(s.clientName||'Sessão')}</div>
+              <div class="info-card-value" style="font-size:.82rem">${p.done}/${p.total} (${p.percent}%) · ${escapeHtml(label)}</div>
+            </div>
+            <div style="display:flex;gap:4px" onclick="event.stopPropagation()">
+              <button class="btn btn-sm btn-outline" onclick="openTrainSession('${s.id}','${s.kind}')">Abrir</button>
+              <button class="btn btn-sm btn-outline" style="color:var(--danger)" onclick="cancelTrainSession('${s.id}','${s.kind}')">Cancelar</button>
+            </div>
+          </div>
+          <div class="list-prog" style="margin-top:8px"><span style="width:${p.percent}%"></span></div>
+        </div>`;
+      }).join('')||'<div class="empty-msg">Nenhuma sessão ainda. Clique em + Nova sessão.</div>'}
+    </div>`;
+}
+function selectTraining(id){const t=(data.trainings||[]).find(x=>x.id===id);if(!t)return;selectedId=id;selectedType='treino';showDetail();const steps=getTreinoSteps(t.tipo);const p=treinoProgress(t);let lastG='';const stepsHtml=steps.map(s=>{let h='';if(s.g!==lastG){h=`<div class="treino-group-title">${escapeHtml(s.g)}</div>`;lastG=s.g}return h+`<div class="check-item ${t.done&&t.done[s.id]?'done':''}"><input type="checkbox" ${t.done&&t.done[s.id]?'checked':''} onchange="toggleTreinoStep('${t.id}','${s.id}')"/><div class="check-text">${escapeHtml(s.t)}</div></div>`}).join('');document.getElementById('detailView').innerHTML=`<div class="main-header"><div class="main-header-info"><h2>⚡ ${escapeHtml(t.clientName)}</h2><div class="main-header-meta">Checklist rápido · ${escapeHtml(t.tipo||'')} · ${p.done}/${p.total} · <span id="treinoTimerDisplay">${formatTimer(getTrainingElapsed(t))}</span></div></div><div class="main-header-actions">
+        <button class="btn btn-sm btn-outline" onclick="toggleTrainingTimer('${t.id}')">${t.timerRunning?'⏸':'▶'} Timer</button>
+        <button class="btn btn-sm btn-outline" onclick="changeRapidoTipo('${t.id}')">Trocar tipo</button>
+        <button class="btn btn-sm btn-outline" onclick="convertTrainSession('${t.id}','rapido','manual')">→ Manual</button>
+        <button class="btn btn-sm btn-success" onclick="copyTrainingSummary('${t.id}')">📋</button>
+        <button class="btn btn-sm btn-outline" style="color:var(--danger)" onclick="cancelTrainSession('${t.id}','rapido')">Cancelar</button>
+      </div></div><div class="main-content"><div class="progress-wrap"><div class="progress-bar" style="width:${p.percent}%"></div></div>${stepsHtml}</div>`;renderSidebar()}
+function toggleTreinoStep(treinoId,stepId){const t=data.trainings.find(x=>x.id===treinoId);if(!t.done)t.done={};t.done[stepId]=!t.done[stepId];t.updatedAt=new Date().toISOString();const prog=treinoProgress(t);if(t.done[stepId]&&prog.total&&prog.done===prog.total)addXP('training_done',t.clientName);save();preserveScroll(()=>selectTraining(treinoId))}
+function formatTimer(sec){sec=Math.max(0,Math.floor(sec||0));const m=Math.floor(sec/60),s=sec%60;return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}
+function getTrainingElapsed(t){let sec=t.timerSeconds||0;if(t.timerRunning&&t.timerStartedAt)sec+=Math.floor((Date.now()-new Date(t.timerStartedAt).getTime())/1000);return sec}
+function toggleTrainingTimer(id){const t=data.trainings.find(x=>x.id===id);if(t.timerRunning){t.timerSeconds=getTrainingElapsed(t);t.timerRunning=false;t.timerStartedAt=null}else{t.timerRunning=true;t.timerStartedAt=new Date().toISOString()}save();selectTraining(id)}
+function copyTrainingSummary(id){const t=data.trainings.find(x=>x.id===id);const p=treinoProgress(t);navigator.clipboard.writeText(`Treino — ${t.clientName}\nTipo: ${t.tipo}\nProgresso: ${p.done}/${p.total}\nDuração: ${formatTimer(getTrainingElapsed(t))}`).then(()=>showToast('Copiado'))}
+setInterval(()=>{if(selectedType==='treino'&&selectedId){const t=(data.trainings||[]).find(x=>x.id===selectedId);if(t&&t.timerRunning){const el=document.getElementById('treinoTimerDisplay');if(el)el.textContent=formatTimer(getTrainingElapsed(t))}}},1000);
+
+function renderAgendaHome(){showDetail();const list=(data.agenda||[]).slice().sort((a,b)=>new Date(a.quando)-new Date(b.quando));document.getElementById('detailView').innerHTML=`<div class="main-header"><div class="main-header-info"><h2>Agenda</h2></div><div class="main-header-actions"><button class="btn btn-sm btn-success" onclick="openAgendaModal()">+</button></div></div><div class="main-content">${list.map(a=>`<div class="info-card wide" style="margin-bottom:6px"><div class="info-card-label">${fmt(a.quando)}</div><div class="info-card-value">${escapeHtml(a.titulo||'')}</div></div>`).join('')||'<div class="empty-msg">Vazia</div>'}</div>`}
+function openAgendaModal(){document.getElementById('modal').style.display='flex';document.getElementById('modal').innerHTML=`<div class="modal-box"><h3>Agendar</h3><div class="form-group"><label>Título</label><input id="m_at"/></div><div class="form-group"><label>Quando</label><input id="m_aw" type="datetime-local"/></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-outline" onclick="closeModal()">Cancelar</button><button class="btn btn-success" onclick="const t=document.getElementById('m_at').value.trim();const w=document.getElementById('m_aw').value;if(!t||!w)return;if(!data.agenda)data.agenda=[];data.agenda.push({id:uid(),titulo:t,quando:new Date(w).toISOString()});save();closeModal();renderAgendaHome();renderSidebar()">Salvar</button></div></div>`}
+
+
+function manualProgress(s){
+  let total=0, done=0;
+  MANUAL_SECTIONS.forEach(sec=>sec.items.forEach(it=>{ total++; if(s.done&&s.done[it.id]) done++; }));
+  return {done,total,percent:total?Math.round(done/total*100):0};
+}
+function startNewManual(){
+  const opts=(data.clients||[]).filter(c=>!c.archived).map(c=>`<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
+  document.getElementById('modal').style.display='flex';
+  document.getElementById('modal').innerHTML=`<div class="modal-box"><h3>Sessão — Manual oficial</h3>
+    <div class="form-group"><label>Cliente</label><select id="m_man_client"><option value="">—</option>${opts}</select></div>
+    <div class="form-group"><label>Nome avulso</label><input id="m_man_name" placeholder="Se não vincular cliente" /></div>
+    <p style="font-size:.78rem;color:var(--text-muted);margin:8px 0">Roteiro do Manual de Treinamento Operacional BeeFood (9 seções). O treino antigo continua em Treino.</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-success" onclick="createManualSession()">Iniciar</button>
+    </div></div>`;
+}
+function createManualSession(){
+  const clientId=document.getElementById('m_man_client').value;
+  let name=(document.getElementById('m_man_name').value||'').trim();
+  if(clientId){ const cl=data.clients.find(c=>c.id===clientId); if(cl) name=cl.nome; }
+  if(!name) name='Sessão manual';
+  if(!data.manualSessions) data.manualSessions=[];
+  const s={id:uid(),clientId,clientName:name,done:{},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+  data.manualSessions.unshift(s); save(); closeModal(); selectManual(s.id);
+}
+function selectManual(id){
+  const s=(data.manualSessions||[]).find(x=>x.id===id); if(!s) return;
+  selectedId=id; selectedType='manual'; showDetail();
+  const p=manualProgress(s);
+  const sections=MANUAL_SECTIONS.map(sec=>{
+    const doneSec=sec.items.filter(it=>s.done&&s.done[it.id]).length;
+    const items=sec.items.map(it=>`<div class="check-item ${s.done&&s.done[it.id]?'done':''}">
+      <input type="checkbox" ${s.done&&s.done[it.id]?'checked':''} onchange="toggleManualStep('${s.id}','${it.id}')" />
+      <div class="check-text">${escapeHtml(it.t)}</div></div>`).join('');
+    return `<div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>${escapeHtml(sec.titulo)} (${doneSec}/${sec.items.length})</span><span class="chevron">▶</span></div>
+      <div class="section-body open">${items}</div></div>`;
+  }).join('');
+  document.getElementById('detailView').innerHTML=`
+    <div class="main-header"><div class="main-header-info">
+      <h2>📘 Manual oficial — ${escapeHtml(s.clientName)}</h2>
+      <div class="main-header-meta">Roteiro Operacional BeeFood · ${p.done}/${p.total} (${p.percent}%)</div></div>
+      <div class="main-header-actions">
+        <button class="btn btn-sm btn-outline" onclick="resetManualSession('${s.id}')">↺ Limpar</button>
+        <button class="btn btn-sm btn-outline" onclick="convertTrainSession('${s.id}','manual','rapido')">→ Rápido</button>
+        <button class="btn btn-sm btn-success" onclick="copyManualSummary('${s.id}')">📋 Resumo</button>
+        <button class="btn btn-sm btn-outline" style="color:var(--danger)" onclick="cancelTrainSession('${s.id}','manual')">Cancelar</button>
+      </div></div>
+    <div class="main-content">
+      <div class="progress-wrap"><div class="progress-bar" style="width:${p.percent}%"></div></div>
+      <div class="info-card wide" style="margin-bottom:10px;border-left:4px solid var(--accent)">
+        <div class="info-card-label">Base</div>
+        <div class="info-card-value" style="font-size:.82rem">Manual e Roteiro de Treinamento Operacional BeeFood — guia cronológico. O menu <strong>Treino</strong> antigo permanece separado.</div>
+      </div>
+      ${sections}
+      <div class="info-card wide" style="margin-top:8px">
+        <div class="info-card-label">Horários de suporte (Brasília)</div>
+        <div class="info-card-value" style="font-size:.82rem">Seg–Sex 9h–22h · Sáb/feriado 10h–22h · Dom 11h–14h e 17h–21h</div>
+      </div>
+    </div>`;
+  renderSidebar();
+}
+function toggleManualStep(sid, stepId){
+  const s=data.manualSessions.find(x=>x.id===sid); if(!s.done) s.done={};
+  s.done[stepId]=!s.done[stepId]; s.updatedAt=new Date().toISOString(); save(); preserveScroll(()=>selectManual(sid));
+}
+function resetManualSession(sid){
+  if(!confirm('Zerar todas as marcas desta sessão?')) return;
+  const s=data.manualSessions.find(x=>x.id===sid); s.done={}; s.updatedAt=new Date().toISOString(); save(); selectManual(sid); showToast('Checklist limpo');
+}
+function copyManualSummary(sid){
+  const s=data.manualSessions.find(x=>x.id===sid); const p=manualProgress(s);
+  const lines=['Manual oficial BeeFood — '+s.clientName, 'Progresso: '+p.done+'/'+p.total+' ('+p.percent+'%)',''];
+  MANUAL_SECTIONS.forEach(sec=>{
+    const pending=sec.items.filter(it=>!(s.done&&s.done[it.id]));
+    if(pending.length){ lines.push(sec.titulo); pending.forEach(it=>lines.push('  ○ '+it.t)); lines.push(''); }
+  });
+  if(lines.length<=3) lines.push('Todas as etapas marcadas.');
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast('Resumo copiado'));
+}
+function renderManualHome(){
+  showDetail();
+  const list=data.manualSessions||[];
+  document.getElementById('detailView').innerHTML=`
+    <div class="main-header"><div class="main-header-info"><h2>📘 Manual operacional</h2>
+      <div class="main-header-meta">Roteiro oficial BeeFood (9 seções) · separado do menu Treino</div></div>
+      <div class="main-header-actions"><button class="btn btn-sm btn-success" onclick="startNewManual()">+ Sessão</button></div></div>
+    <div class="main-content">
+      <div class="info-card wide" style="margin-bottom:10px;border-left:4px solid var(--accent)">
+        <div class="info-card-value" style="font-size:.85rem">Checklist baseado no <strong>Manual e Roteiro de Treinamento Operacional BeeFood</strong>: diagnóstico, dashboard/caixa, BeeBot, delivery, mesas, PDV, fechamento, cardápio e protocolo final.</div>
+      </div>
+      ${list.map(s=>{ const p=manualProgress(s); return `<div class="info-card wide" style="margin-bottom:8px;cursor:pointer" onclick="selectManual('${s.id}')">
+        <div class="info-card-label">${escapeHtml(s.clientName)}</div>
+        <div class="info-card-value">${p.done}/${p.total} (${p.percent}%) · ${fmt(s.updatedAt||s.createdAt)}</div></div>`; }).join('')||'<div class="empty-msg">Nenhuma sessão — clique em + Sessão</div>'}
+    </div>`;
+}
+
+function renderConfig(){showDetail();document.getElementById('detailView').innerHTML=`<div class="main-header"><div class="main-header-info"><h2>Config</h2></div></div><div class="main-content">
+<div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Backup</span><span class="chevron">▶</span></div><div class="section-body open"><p style="font-size:.8rem;color:var(--text-muted);margin-bottom:8px">Último backup local: ${fmt(data.lastBackupAt)}. Os dados da equipe já sincronizam automaticamente na nuvem. O exportar continua disponível como cópia de segurança no seu computador. A cada 7 dias o sistema lembra do backup local.</p><button class="btn btn-sm btn-success" onclick="exportData()">Exportar</button> <label class="btn btn-sm btn-outline" style="display:inline-flex;cursor:pointer">Importar<input type="file" accept="application/json" style="display:none" onchange="importData(event)"/></label> <button class="btn btn-sm btn-outline" onclick="ensureDefaultScripts();ensureWikiSeed();showToast('Mesclado')">Mesclar scripts/wiki</button></div></div>
+<div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Bitrix</span><span class="chevron">▶</span></div><div class="section-body open">${(data.bitrixTemplates||[]).map((t,i)=>`<div style="margin-bottom:8px;padding:8px;border:1px solid var(--border);border-radius:8px"><input value="${escapeHtml(t.titulo)}" onchange="data.bitrixTemplates[${i}].titulo=this.value;save()" style="width:100%;margin-bottom:4px;background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px"/><textarea onchange="data.bitrixTemplates[${i}].texto=this.value;save()" style="width:100%;min-height:50px;background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px">${escapeHtml(t.texto)}</textarea></div>`).join('')}</div></div>
+<div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Notificações</span><span class="chevron">▶</span></div><div class="section-body open"><button class="btn btn-sm btn-outline" onclick="Notification.requestPermission().then(p=>showToast('Permissão: '+p))">Permitir</button></div></div>
+<div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Aparência e som</span><span class="chevron">▶</span></div><div class="section-body open">
+<button class="btn btn-sm btn-outline" onclick="toggleTheme()">🌓 Tema claro/escuro</button>
+<button class="btn btn-sm btn-outline" onclick="toggleSound()">🔔 Som conquistas</button>
+<button class="btn btn-sm btn-outline" onclick="toggleFocusMode()">🎯 Modo foco</button>
+</div></div>
+<div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Mensagem de finalização</span><span class="chevron">▶</span></div><div class="section-body open" style="font-size:.82rem">
+<label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer">
+  <input type="checkbox" ${((data.settings||{}).finalIncluirFiscal)?'checked':''} onchange="data.settings.finalIncluirFiscal=this.checked;save();showToast(this.checked?'Fiscal na finalização: sim':'Fiscal na finalização: não')" />
+  Incluir fiscal / TEF no texto copiado
+</label>
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+  <input type="checkbox" ${((data.settings||{}).finalIncluirPosVenda)?'checked':''} onchange="data.settings.finalIncluirPosVenda=this.checked;save();showToast(this.checked?'Pós-venda na finalização: sim':'Pós-venda na finalização: não')" />
+  Incluir menção ao pós-venda D+7 / D+30
+</label>
+<p style="margin-top:8px;color:var(--text-muted);font-size:.75rem">Por padrão o resumo fica só com cliente, tipo e conclusão — sem fiscal nem pós-venda.</p>
+</div></div>
+<div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Atalhos de teclado</span><span class="chevron">▶</span></div><div class="section-body open" style="font-size:.82rem;color:var(--text-muted);line-height:1.6">
+<code>/</code> busca · <code>N</code> novo · <code>F</code> modo foco · <code>Esc</code> fechar<br>
+<code>1</code> Hoje · <code>2</code> Clientes · <code>3</code> Agenda · <code>4</code> Treino<br>
+<code>5</code> Scripts · <code>6</code> Wiki · <code>7</code> Carreira · <code>8</code> Config
+</div></div>
+<div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Conta e sincronização</span><span class="chevron">▶</span></div><div class="section-body open" style="font-size:.82rem">
+<p style="color:var(--text-muted);margin-bottom:8px">Conectado como <strong>${escapeHtml((currentAnalyst&&currentAnalyst.nome)||'—')}</strong>${currentAnalyst&&currentAnalyst.isAdmin?' (admin)':''}. Última sincronização: ${fmt(data.lastTeamSync)}.</p>
+<button class="btn btn-sm btn-outline" onclick="syncToTeam()">Sincronizar agora</button>
+<button class="btn btn-sm btn-outline" onclick="logoutAnalyst()">Sair</button>
+</div></div>
+<div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Histórico de alterações</span><span class="chevron">▶</span></div><div class="section-body open" id="auditLogList">${typeof renderAuditList==='function'?renderAuditList():''}</div></div>
+</div>`}
+
+function checkAlerts(){const now=Date.now();(data.clients||[]).forEach(c=>{(c.alertas||[]).forEach(a=>{if(a.done||a._notified)return;const t=new Date(a.quando).getTime();if(t<=now&&t>now-120000){a._notified=true;try{if(Notification.permission==='granted')new Notification('Onboarding: '+c.nome,{body:a.texto,requireInteraction:true})}catch(e){}showToast('⏰ '+c.nome+': '+a.texto)}})});save()}
+setInterval(checkAlerts,30000);
+
+document.addEventListener('keydown',function(ev){
+  const tag=(ev.target&&ev.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='textarea'||tag==='select'||ev.target.isContentEditable) {
+    if(ev.key==='Escape'){ ev.target.blur(); return; }
+    return;
+  }
+  if(ev.key==='/' ){ ev.preventDefault(); const s=document.getElementById('searchInput'); if(s){s.focus();s.select()} return; }
+  if(ev.key==='n'||ev.key==='N'){ if(!ev.ctrlKey&&!ev.metaKey){ ev.preventDefault(); onNewMain(); } return; }
+  if(ev.key==='f'||ev.key==='F'){ if(!ev.ctrlKey){ toggleFocusMode(); } return; }
+  if(ev.key==='Escape'){ if(document.body.classList.contains('focus-mode')) toggleFocusMode(); closeModal(); return; }
+  const map={'1':'dashboard','2':'clientes','3':'agenda','4':'treino','5':'scripts','6':'casos','7':'carreira','8':'config'};
+  if(map[ev.key]){ switchTab(map[ev.key]); }
+});
+
+
+// Login e sincronização na nuvem
+document.getElementById('app').style.display='none';
+showLogin();
+if(window.firebase){
+  firebase.auth().onAuthStateChanged(user=>{
+    if(user) enterApp(user);
+    else {
+      fbReady=false;
+      currentAnalyst=null;
+      showLogin();
+    }
+  });
+}else{
+  const loginHint=document.querySelector('#loginOverlay div div:last-child');
+  showToast('Não foi possível carregar a nuvem. Recarregue a página.');
+}
+switchTab('dashboard');
+if(needsWeeklyBackup())setTimeout(()=>showToast('Lembrete: faça o backup semanal'),1500);
+console.log('Onboarding v4 cloud ready');
+
+</script>
+</body>
+</html>
