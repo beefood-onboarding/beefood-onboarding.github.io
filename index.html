@@ -500,7 +500,8 @@ function markSharedDirty(){
     wikiTagsManaged:data.wikiTagsManaged||[],
     settings:{
       finalIncluirFiscal:!!(data.settings&&data.settings.finalIncluirFiscal),
-      finalIncluirPosVenda:!!(data.settings&&data.settings.finalIncluirPosVenda)
+      finalIncluirPosVenda:!!(data.settings&&data.settings.finalIncluirPosVenda),
+      modules:modulesPayload()
     }
   };
   if(!metaRemote || recKey(metaRemote.scriptTagsManaged||[])!==recKey(metaLocal.scriptTagsManaged) || recKey(metaRemote.wikiTagsManaged||[])!==recKey(metaLocal.wikiTagsManaged) || recKey(metaRemote.settings||{})!==recKey(metaLocal.settings)){
@@ -555,7 +556,8 @@ async function flushToCloud(forceAll){
       wikiTagsManaged:data.wikiTagsManaged||[],
       settings:{
         finalIncluirFiscal:!!(data.settings&&data.settings.finalIncluirFiscal),
-        finalIncluirPosVenda:!!(data.settings&&data.settings.finalIncluirPosVenda)
+        finalIncluirPosVenda:!!(data.settings&&data.settings.finalIncluirPosVenda),
+        modules:modulesPayload()
       },
       lastTeamSync:new Date().toISOString(),
       updatedBy:currentAnalyst.nome
@@ -682,9 +684,12 @@ function startTeamListeners(){
     if(m.settings && data.settings){
       if(m.settings.finalIncluirFiscal!=null) data.settings.finalIncluirFiscal=m.settings.finalIncluirFiscal;
       if(m.settings.finalIncluirPosVenda!=null) data.settings.finalIncluirPosVenda=m.settings.finalIncluirPosVenda;
+      if(m.settings.modules && typeof m.settings.modules==='object') data.settings.modules=Object.assign({}, m.settings.modules);
+      normalizeModules();
     }
     if(m.lastTeamSync) data.lastTeamSync=m.lastTeamSync;
     persistLocalOnly();
+    try{ applyModuleVisibility(); }catch(e){ console.warn(e); }
   }, err=>{ fbMetaReady=true; console.warn(err); }));
   fbUnsubs.push(team.collection('auditLogs').orderBy('at','desc').limit(80).onSnapshot(snap=>{
     fbAuditLogs=snap.docs.map(d=>Object.assign({id:d.id}, d.data()));
@@ -1152,9 +1157,12 @@ async function loadFromTeam(){
       if(m.settings && data.settings){
         if(m.settings.finalIncluirFiscal!=null) data.settings.finalIncluirFiscal=m.settings.finalIncluirFiscal;
         if(m.settings.finalIncluirPosVenda!=null) data.settings.finalIncluirPosVenda=m.settings.finalIncluirPosVenda;
+        if(m.settings.modules && typeof m.settings.modules==='object') data.settings.modules=Object.assign({}, m.settings.modules);
+        normalizeModules();
       }
     }
     persistLocalOnly();
+    try{ applyModuleVisibility(); }catch(e){ console.warn(e); }
     updateSyncStatus('Atualizado', 'ok');
     showToast('Dados da equipe carregados!');
     if(typeof renderScriptsHome==='function') renderScriptsHome();
@@ -1239,8 +1247,51 @@ if(data.settings.finalIncluirFiscal==null) data.settings.finalIncluirFiscal=fals
 if(data.settings.finalIncluirPosVenda==null) data.settings.finalIncluirPosVenda=false;
 if(!data.wikiTagsManaged) data.wikiTagsManaged=[];
 if(!data.scriptTagsManaged) data.scriptTagsManaged=[];
+normalizeModules();
 if(data.settings.theme==='light') document.body.classList.add('theme-light');
 
+
+// === MÓDULOS OPCIONAIS (configuração da equipe, sincronizada em meta/config.settings.modules) ===
+const OPTIONAL_MODULES=[
+  {key:'agenda',label:'Agenda',desc:'Compromissos e agendamentos da equipe'},
+  {key:'treino',label:'Treino',desc:'Sessões e checklist de treinamento'},
+  {key:'carreira',label:'Carreira',desc:'XP, níveis, conquistas e streak'}
+];
+function normalizeModules(){
+  if(!data.settings) data.settings={sound:true,theme:'dark',finalIncluirFiscal:false,finalIncluirPosVenda:false};
+  const cur=data.settings.modules||{};
+  data.settings.modules={agenda:cur.agenda===true,carreira:cur.carreira===true,treino:cur.treino===true};
+}
+function modulesPayload(){
+  const m=(data.settings&&data.settings.modules)||{};
+  return {agenda:m.agenda===true,carreira:m.carreira===true,treino:m.treino===true};
+}
+function isModuleOn(tab){
+  if(!OPTIONAL_MODULES.some(x=>x.key===tab)) return true;
+  const m=(data.settings&&data.settings.modules)||{};
+  return m[tab]===true;
+}
+let lastModulesKey=null;
+function applyModuleVisibility(){
+  document.querySelectorAll('.nav-tab').forEach(b=>{ b.style.display=isModuleOn(b.dataset.tab)?'':'none'; });
+  const key=JSON.stringify(modulesPayload());
+  const changed=lastModulesKey!==null && lastModulesKey!==key;
+  lastModulesKey=key;
+  if(typeof currentTab==='undefined') return;
+  if(!isModuleOn(currentTab)){
+    switchTab('dashboard');
+  } else if(changed && !selectedId && (currentTab==='dashboard' || currentTab==='config')){
+    if(currentTab==='dashboard') renderDashboard(); else renderConfig();
+  }
+}
+function setModuleEnabled(key,on){
+  normalizeModules();
+  data.settings.modules[key]=!!on;
+  save();
+  applyModuleVisibility();
+  const mod=OPTIONAL_MODULES.find(x=>x.key===key);
+  showToast((mod?mod.label:key)+(on?' ativado':' desativado'));
+}
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}catch(e){showToast('Storage cheio?')}try{if(typeof savePersonalData==='function')savePersonalData()}catch(e){}if(!fbApplying && currentAnalyst && typeof scheduleTeamSync==='function') scheduleTeamSync();}
@@ -1466,8 +1517,8 @@ function updateSearchPlaceholder(){
   else if(currentTab==='scripts') s.placeholder='Buscar scripts...';
   else s.placeholder='Buscar...';
 }
-function switchTab(tab){currentTab=tab;document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));const fc=document.getElementById('filtersClientes');if(fc)fc.style.display=tab==='clientes'?'flex':'none';const btn=document.getElementById('btnNewMain');if(tab==='clientes'){btn.style.display='inline-flex';btn.textContent='+ Cliente'}else if(tab==='agenda'){btn.style.display='inline-flex';btn.textContent='+ Agenda'}else if(tab==='treino'){btn.style.display='inline-flex';btn.textContent='+ Nova sessão'}else if(tab==='scripts'){btn.style.display='inline-flex';btn.textContent='+ Script'}else if(tab==='casos'){btn.style.display='inline-flex';btn.textContent='+ Artigo'}else btn.style.display='none';selectedId=null;selectedType=null;document.getElementById('app').classList.remove('showing-detail');document.getElementById('emptyState').style.display='flex';document.getElementById('detailView').style.display='none';renderSidebar();if(tab==='dashboard')renderDashboard();if(tab==='config')renderConfig();if(tab==='carreira')renderCarreira();if(tab==='scripts')renderScriptsHome();if(tab==='impostos')renderImpostosHome();if(tab==='casos')renderCasosHome();if(tab==='treino')renderTreinoHome();if(tab==='agenda')renderAgendaHome();updateSearchPlaceholder()}
-function onNewMain(){if(currentTab==='clientes')openClientModal();else if(currentTab==='agenda')openAgendaModal();else if(currentTab==='treino')startNewTraining();else if(currentTab==='scripts')openScriptModal();else if(currentTab==='casos')openCasoModal()}
+function switchTab(tab){if(!isModuleOn(tab))tab='dashboard';currentTab=tab;document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));const fc=document.getElementById('filtersClientes');if(fc)fc.style.display=tab==='clientes'?'flex':'none';const btn=document.getElementById('btnNewMain');if(tab==='clientes'){btn.style.display='inline-flex';btn.textContent='+ Cliente'}else if(tab==='agenda'){btn.style.display='inline-flex';btn.textContent='+ Agenda'}else if(tab==='treino'){btn.style.display='inline-flex';btn.textContent='+ Nova sessão'}else if(tab==='scripts'){btn.style.display='inline-flex';btn.textContent='+ Script'}else if(tab==='casos'){btn.style.display='inline-flex';btn.textContent='+ Artigo'}else btn.style.display='none';selectedId=null;selectedType=null;document.getElementById('app').classList.remove('showing-detail');document.getElementById('emptyState').style.display='flex';document.getElementById('detailView').style.display='none';renderSidebar();if(tab==='dashboard')renderDashboard();if(tab==='config')renderConfig();if(tab==='carreira')renderCarreira();if(tab==='scripts')renderScriptsHome();if(tab==='impostos')renderImpostosHome();if(tab==='casos')renderCasosHome();if(tab==='treino')renderTreinoHome();if(tab==='agenda')renderAgendaHome();updateSearchPlaceholder()}
+function onNewMain(){if(!isModuleOn(currentTab))return;if(currentTab==='clientes')openClientModal();else if(currentTab==='agenda')openAgendaModal();else if(currentTab==='treino')startNewTraining();else if(currentTab==='scripts')openScriptModal();else if(currentTab==='casos')openCasoModal()}
 function closeModal(){document.getElementById('modal').style.display='none';document.getElementById('modal').innerHTML=''}
 function toggleSection(el){el.classList.toggle('open');const b=el.nextElementSibling;if(b)b.classList.toggle('open')}
 function showDetail(){document.getElementById('emptyState').style.display='none';document.getElementById('detailView').style.display='flex';document.getElementById('app').classList.add('showing-detail')}
@@ -1769,7 +1820,7 @@ function saveClientModal(){
 }
 function onUfChange(){/* removed */}
 
-function renderDashboard(){showDetail();const m=computeMetrics();const alerts=[];(data.clients||[]).forEach(c=>{(c.alertas||[]).filter(a=>!a.done&&new Date(a.quando)<=new Date(Date.now()+86400000)).forEach(a=>alerts.push({c,a}))});const meuDia=(data.clients||[]).filter(isMeuDia);const backupBanner=needsWeeklyBackup()?`<div class="backup-banner"><span>💾 Backup semanal pendente</span><button class="btn btn-sm btn-success" onclick="exportData()">Baixar</button></div>`:'';document.getElementById('detailView').innerHTML=`<div class="main-header"><div class="main-header-info"><h2>Hoje</h2><div class="main-header-meta">Meu dia + alertas + SLA</div></div></div><div class="main-content">${backupBanner}<div class="info-grid"><div class="info-card"><div class="info-card-label">Ativos</div><div class="info-card-value">${m.activeClients}</div></div><div class="info-card"><div class="info-card-label">Go-lives</div><div class="info-card-value">${m.goLives}</div></div><div class="info-card"><div class="info-card-label">Meu dia</div><div class="info-card-value">${meuDia.length}</div></div><div class="info-card"><div class="info-card-label">SLA atraso</div><div class="info-card-value">${m.slaLateActive}</div></div><div class="info-card"><div class="info-card-label">XP</div><div class="info-card-value">${m.xp}</div></div><div class="info-card"><div class="info-card-label">Streak</div><div class="info-card-value">${m.streak}🔥</div></div></div>
+function renderDashboard(){showDetail();const m=computeMetrics();const alerts=[];(data.clients||[]).forEach(c=>{(c.alertas||[]).filter(a=>!a.done&&new Date(a.quando)<=new Date(Date.now()+86400000)).forEach(a=>alerts.push({c,a}))});const meuDia=(data.clients||[]).filter(isMeuDia);const backupBanner=needsWeeklyBackup()?`<div class="backup-banner"><span>💾 Backup semanal pendente</span><button class="btn btn-sm btn-success" onclick="exportData()">Baixar</button></div>`:'';document.getElementById('detailView').innerHTML=`<div class="main-header"><div class="main-header-info"><h2>Hoje</h2><div class="main-header-meta">Meu dia + alertas + SLA</div></div></div><div class="main-content">${backupBanner}<div class="info-grid"><div class="info-card"><div class="info-card-label">Ativos</div><div class="info-card-value">${m.activeClients}</div></div><div class="info-card"><div class="info-card-label">Go-lives</div><div class="info-card-value">${m.goLives}</div></div><div class="info-card"><div class="info-card-label">Meu dia</div><div class="info-card-value">${meuDia.length}</div></div><div class="info-card"><div class="info-card-label">SLA atraso</div><div class="info-card-value">${m.slaLateActive}</div></div>${isModuleOn('carreira')?`<div class="info-card"><div class="info-card-label">XP</div><div class="info-card-value">${m.xp}</div></div><div class="info-card"><div class="info-card-label">Streak</div><div class="info-card-value">${m.streak}🔥</div></div>`:''}</div>
 <h3 style="font-size:.9rem;margin:8px 0">Só meu dia</h3>${meuDia.slice(0,20).map(c=>`<div class="list-item" onclick="switchTab('clientes');setTimeout(()=>selectClient('${c.id}'),30)" style="border-left-color:${c.cor||'var(--primary)'}"><div class="list-item-title">${escapeHtml(c.nome)}</div><div class="list-item-meta">${progressOf(c).percent}% · ${getStatus(c)}</div></div>`).join('')||'<div class="empty-msg">Nada prioritário</div>'}
 <h3 style="font-size:.9rem;margin:12px 0 6px">Alertas 24h</h3>${alerts.slice(0,15).map(x=>`<div class="history-item"><div class="time">${fmt(x.a.quando)}</div>${escapeHtml(x.c.nome)} — ${escapeHtml(x.a.texto)}</div>`).join('')||'<div class="empty-msg">Nenhum</div>'}</div>`}
 
@@ -2960,6 +3011,13 @@ function renderManualHome(){
 function renderConfig(){showDetail();document.getElementById('detailView').innerHTML=`<div class="main-header"><div class="main-header-info"><h2>Config</h2></div></div><div class="main-content">
 <div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Backup</span><span class="chevron">▶</span></div><div class="section-body open"><p style="font-size:.8rem;color:var(--text-muted);margin-bottom:8px">Último backup local: ${fmt(data.lastBackupAt)}. Os dados da equipe já sincronizam automaticamente na nuvem. O exportar continua disponível como cópia de segurança no seu computador. A cada 7 dias o sistema lembra do backup local.</p><button class="btn btn-sm btn-success" onclick="exportData()">Exportar</button> <label class="btn btn-sm btn-outline" style="display:inline-flex;cursor:pointer">Importar<input type="file" accept="application/json" style="display:none" onchange="importData(event)"/></label> <button class="btn btn-sm btn-outline" onclick="ensureDefaultScripts();ensureWikiSeed();showToast('Mesclado')">Mesclar scripts/wiki</button></div></div>
 <div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Bitrix</span><span class="chevron">▶</span></div><div class="section-body open">${(data.bitrixTemplates||[]).map((t,i)=>`<div style="margin-bottom:8px;padding:8px;border:1px solid var(--border);border-radius:8px"><input value="${escapeHtml(t.titulo)}" onchange="data.bitrixTemplates[${i}].titulo=this.value;save()" style="width:100%;margin-bottom:4px;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px"/><textarea onchange="data.bitrixTemplates[${i}].texto=this.value;save()" style="width:100%;min-height:50px;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px">${escapeHtml(t.texto)}</textarea></div>`).join('')}</div></div>
+<div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Módulos</span><span class="chevron">▶</span></div><div class="section-body open" style="font-size:.82rem">
+<p style="color:var(--text-muted);margin-bottom:8px">Escolha quais módulos aparecem no menu. A configuração vale para toda a equipe; os dados são mantidos mesmo com o módulo desativado.</p>
+${OPTIONAL_MODULES.map(mod=>`<label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer">
+  <input type="checkbox" ${isModuleOn(mod.key)?'checked':''} onchange="setModuleEnabled('${mod.key}',this.checked)" />
+  <span><strong>${mod.label}</strong> <span style="color:var(--text-muted)">— ${mod.desc}</span></span>
+</label>`).join('')}
+</div></div>
 <div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Notificações</span><span class="chevron">▶</span></div><div class="section-body open"><button class="btn btn-sm btn-outline" onclick="Notification.requestPermission().then(p=>showToast('Permissão: '+p))">Permitir</button></div></div>
 <div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Aparência e som</span><span class="chevron">▶</span></div><div class="section-body open">
 <button class="btn btn-sm btn-outline" onclick="toggleTheme()">🌓 Tema claro/escuro</button>
@@ -2979,8 +3037,7 @@ function renderConfig(){showDetail();document.getElementById('detailView').inner
 </div></div>
 <div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Atalhos de teclado</span><span class="chevron">▶</span></div><div class="section-body open" style="font-size:.82rem;color:var(--text-muted);line-height:1.6">
 <code>/</code> busca · <code>N</code> novo · <code>F</code> modo foco · <code>Esc</code> fechar<br>
-<code>1</code> Hoje · <code>2</code> Clientes · <code>3</code> Agenda · <code>4</code> Treino<br>
-<code>5</code> Scripts · <code>6</code> Wiki · <code>7</code> Carreira · <code>8</code> Config
+${[['1','Hoje','dashboard'],['2','Clientes','clientes'],['3','Agenda','agenda'],['4','Treino','treino'],['5','Scripts','scripts'],['6','Wiki','casos'],['7','Carreira','carreira'],['8','Config','config']].filter(x=>isModuleOn(x[2])).map(x=>`<code>${x[0]}</code> ${x[1]}`).join(' · ')}
 </div></div>
 <div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Conta e sincronização</span><span class="chevron">▶</span></div><div class="section-body open" style="font-size:.82rem">
 <p style="color:var(--text-muted);margin-bottom:8px">Conectado como <strong>${escapeHtml((currentAnalyst&&currentAnalyst.nome)||'—')}</strong>${currentAnalyst&&currentAnalyst.isAdmin?' (admin)':''}. Última sincronização: ${fmt(data.lastTeamSync)}.</p>
@@ -3024,6 +3081,7 @@ if(window.firebase){
   const loginHint=document.querySelector('#loginOverlay div div:last-child');
   showToast('Não foi possível carregar a nuvem. Recarregue a página.');
 }
+applyModuleVisibility();
 switchTab('dashboard');
 if(needsWeeklyBackup())setTimeout(()=>showToast('Lembrete: faça o backup semanal'),1500);
 console.log('Onboarding v4 cloud ready');
