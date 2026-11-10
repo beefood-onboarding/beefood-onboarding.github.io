@@ -236,6 +236,7 @@ body.theme-light .fiscal-chip{background:#f8fafc}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <script>
 
 const STORAGE_KEY='beefood_onboarding_v4';
@@ -1263,7 +1264,14 @@ Stone: ${escapeHtml(c.stoneCode||'—')} · Porta: ${escapeHtml(c.pinpadPorta||'
   w.document.write(htmlDoc); w.document.close();
 }
 
-function switchTab(tab){currentTab=tab;document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));const fc=document.getElementById('filtersClientes');if(fc)fc.style.display=tab==='clientes'?'flex':'none';const btn=document.getElementById('btnNewMain');if(tab==='clientes'){btn.style.display='inline-flex';btn.textContent='+ Cliente'}else if(tab==='agenda'){btn.style.display='inline-flex';btn.textContent='+ Agenda'}else if(tab==='treino'){btn.style.display='inline-flex';btn.textContent='+ Nova sessão'}else if(tab==='scripts'){btn.style.display='inline-flex';btn.textContent='+ Script'}else if(tab==='casos'){btn.style.display='inline-flex';btn.textContent='+ Artigo'}else btn.style.display='none';selectedId=null;selectedType=null;document.getElementById('app').classList.remove('showing-detail');document.getElementById('emptyState').style.display='flex';document.getElementById('detailView').style.display='none';renderSidebar();if(tab==='dashboard')renderDashboard();if(tab==='config')renderConfig();if(tab==='carreira')renderCarreira();if(tab==='scripts')renderScriptsHome();if(tab==='impostos')renderImpostosHome();if(tab==='casos')renderCasosHome();if(tab==='treino')renderTreinoHome();if(tab==='agenda')renderAgendaHome()}
+function updateSearchPlaceholder(){
+  const s=document.getElementById('searchInput');
+  if(!s) return;
+  if(currentTab==='casos') s.placeholder='Buscar na wiki...';
+  else if(currentTab==='scripts') s.placeholder='Buscar scripts...';
+  else s.placeholder='Buscar...';
+}
+function switchTab(tab){currentTab=tab;document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));const fc=document.getElementById('filtersClientes');if(fc)fc.style.display=tab==='clientes'?'flex':'none';const btn=document.getElementById('btnNewMain');if(tab==='clientes'){btn.style.display='inline-flex';btn.textContent='+ Cliente'}else if(tab==='agenda'){btn.style.display='inline-flex';btn.textContent='+ Agenda'}else if(tab==='treino'){btn.style.display='inline-flex';btn.textContent='+ Nova sessão'}else if(tab==='scripts'){btn.style.display='inline-flex';btn.textContent='+ Script'}else if(tab==='casos'){btn.style.display='inline-flex';btn.textContent='+ Artigo'}else btn.style.display='none';selectedId=null;selectedType=null;document.getElementById('app').classList.remove('showing-detail');document.getElementById('emptyState').style.display='flex';document.getElementById('detailView').style.display='none';renderSidebar();if(tab==='dashboard')renderDashboard();if(tab==='config')renderConfig();if(tab==='carreira')renderCarreira();if(tab==='scripts')renderScriptsHome();if(tab==='impostos')renderImpostosHome();if(tab==='casos')renderCasosHome();if(tab==='treino')renderTreinoHome();if(tab==='agenda')renderAgendaHome();updateSearchPlaceholder()}
 function onNewMain(){if(currentTab==='clientes')openClientModal();else if(currentTab==='agenda')openAgendaModal();else if(currentTab==='treino')startNewTraining();else if(currentTab==='scripts')openScriptModal();else if(currentTab==='casos')openCasoModal()}
 function closeModal(){document.getElementById('modal').style.display='none';document.getElementById('modal').innerHTML=''}
 function toggleSection(el){el.classList.toggle('open');const b=el.nextElementSibling;if(b)b.classList.toggle('open')}
@@ -1286,7 +1294,7 @@ function renderSidebar(){
     if(q) list=list.filter(s=>((s.titulo||'')+' '+(s.texto||'')+' '+(s.tags||[]).join(' ')).toLowerCase().includes(q));
     document.getElementById('listCount').textContent=list.length+' scripts';
     area.innerHTML=list.map(s=>`<div class="list-item ${selectedId===s.id?'active':''}" onclick="selectScript('${s.id}')"><div class="list-item-title">${escapeHtml(s.titulo)}</div>${s.tags&&s.tags.length?`<div class="list-item-meta">${s.tags.slice(0,2).map(t=>'<span class="tag-chip" style="font-size:.65rem;padding:1px 5px">'+escapeHtml(t)+'</span>').join(' ')}</div>`:''}</div>`).join('')||'<div class="empty-msg">Nenhum script</div>';
-  }else if(currentTab==='casos'){document.getElementById('listCount').textContent=(data.casos||[]).length;area.innerHTML=(data.casos||[]).slice(0,50).map(c=>`<div class="list-item" onclick="selectCaso('${c.id}')"><div class="list-item-title">${escapeHtml(c.titulo)}</div></div>`).join('')}else{document.getElementById('listCount').textContent=currentTab;area.innerHTML='<div class="empty-msg">Painel →</div>'}}
+  }else if(currentTab==='casos'){const q=((document.getElementById('searchInput')||{}).value||'');const tag=data.wikiTagFilter||'';const list=filterWikiList(data.casos||[],q,tag).slice(0,50);document.getElementById('listCount').textContent=list.length;area.innerHTML=list.map(c=>`<div class="list-item ${selectedId===c.id?'active':''}" onclick="selectCaso('${c.id}')"><div class="list-item-title">${escapeHtml(c.titulo)}</div>${(c.anexos&&c.anexos.length)?`<div class="list-item-meta">${c.anexos.length} arquivo${c.anexos.length>1?'s':''}</div>`:''}</div>`).join('')||'<div class="empty-msg">Nenhum artigo</div>'}else{document.getElementById('listCount').textContent=currentTab;area.innerHTML='<div class="empty-msg">Painel →</div>'}}
 
 function renderClientList(area){const search=((document.getElementById('searchInput')||{}).value||'').toLowerCase().trim();const filter=((document.getElementById('statusFilter')||{}).value)||'acompanhando';const prio=((document.getElementById('prioFilter')||{}).value)||'all';let list=(data.clients||[]).filter(c=>{const ms=!search||(c.nome||'').toLowerCase().includes(search)||(c.codigo||'').toLowerCase().includes(search)||(c.observacoes||'').toLowerCase().includes(search);if(!ms)return false;if(prio!=='all'&&c.prioridade!==prio)return false;const st=getStatus(c),arch=!!c.archived;if(filter==='arquivados')return arch;if(filter==='meu_dia')return isMeuDia(c);if(filter==='sla_atrasado'){const s=getSlaStatus(c);return !arch&&s&&s.days<0&&st!=='concluido'}if(filter==='acompanhando')return !arch&&(st==='em_andamento'||st==='nao_iniciado');if(filter==='all')return !arch;return !arch&&st===filter});list.sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));document.getElementById('listCount').textContent=list.length+' clientes';
 area.innerHTML=list.map(c=>{
@@ -2058,12 +2066,327 @@ function copyText(text){
   });
 }
 
-function allWikiTags(){const set=new Set();(data.casos||[]).forEach(c=>(c.tags||[]).forEach(t=>set.add(t)));return Array.from(set).sort()}
-function setWikiTag(tag){data.wikiTagFilter=(data.wikiTagFilter===tag)?'':tag;renderCasosHome()}
-function renderCasosHome(){showDetail();const q=((document.getElementById('searchInput')||{}).value||'').toLowerCase();const tag=data.wikiTagFilter||'';let list=data.casos||[];if(tag)list=list.filter(c=>(c.tags||[]).includes(tag));if(q)list=list.filter(c=>(c.titulo||'').toLowerCase().includes(q)||(c.texto||'').toLowerCase().includes(q)||(c.solucao||'').toLowerCase().includes(q));const chips=allWikiTags().map(t=>`<span class="tag-chip ${tag===t?'active':''}" onclick="setWikiTag('${escapeHtml(t)}')">${escapeHtml(t)}</span>`).join('');document.getElementById('detailView').innerHTML=`<div class="main-header"><div class="main-header-info"><h2>Wiki</h2><div class="main-header-meta">${list.length} artigos</div></div><div class="main-header-actions"><button class="btn btn-sm btn-success" onclick="openCasoModal()">+</button></div></div><div class="main-content"><div style="margin-bottom:10px">${chips}</div>${list.map(c=>`<div class="info-card wide" style="margin-bottom:8px;cursor:pointer" onclick="selectCaso('${c.id}')"><div class="info-card-label">${escapeHtml(c.titulo)}</div><div class="info-card-value" style="font-size:.8rem">${escapeHtml((c.texto||'').slice(0,120))}</div><div>${(c.tags||[]).map(t=>`<span class="tag-chip" onclick="event.stopPropagation();setWikiTag('${escapeHtml(t)}')">${escapeHtml(t)}</span>`).join('')}</div></div>`).join('')||'<div class="empty-msg">—</div>'}</div>`}
-function selectCaso(id){const c=data.casos.find(x=>x.id===id);if(!c)return;selectedId=id;selectedType='caso';showDetail();document.getElementById('detailView').innerHTML=`<div class="main-header"><div class="main-header-info"><h2>${escapeHtml(c.titulo)}</h2></div><div class="main-header-actions"><button class="btn btn-sm btn-outline" onclick="openCasoModal('${c.id}')">Editar</button><button class="btn btn-sm btn-outline" onclick="renderCasosHome()">Voltar</button></div></div><div class="main-content"><div class="info-card wide"><div class="info-card-label">Resumo</div><div class="info-card-value" style="white-space:pre-wrap">${escapeHtml(c.texto||'')}</div></div><div class="info-card wide" style="margin-top:8px"><div class="info-card-label">Solução</div><div class="info-card-value" style="white-space:pre-wrap">${escapeHtml(c.solucao||'')}</div></div></div>`;renderSidebar()}
-function openCasoModal(id){const c=id?data.casos.find(x=>x.id===id):null;document.getElementById('modal').style.display='flex';document.getElementById('modal').innerHTML=`<div class="modal-box"><h3>Artigo</h3><input type="hidden" id="m_id" value="${c?c.id:''}"/><div class="form-group"><label>Título</label><input id="m_titulo" value="${c?escapeHtml(c.titulo):''}"/></div><div class="form-group"><label>Resumo</label><textarea id="m_texto">${c?escapeHtml(c.texto||''):''}</textarea></div><div class="form-group"><label>Solução</label><textarea id="m_solucao" style="min-height:120px">${c?escapeHtml(c.solucao||''):''}</textarea></div><div class="form-group"><label>Tags</label><input id="m_tags" value="${c?(c.tags||[]).join(', '):''}"/></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-outline" onclick="closeModal()">Cancelar</button><button class="btn btn-success" onclick="saveCasoModal()">Salvar</button></div></div>`}
-function saveCasoModal(){const id=document.getElementById('m_id').value;const titulo=document.getElementById('m_titulo').value.trim();if(!titulo)return;const now=new Date().toISOString();const payload={titulo,texto:document.getElementById('m_texto').value.trim(),solucao:document.getElementById('m_solucao').value.trim(),tags:document.getElementById('m_tags').value.split(',').map(s=>s.trim()).filter(Boolean),updatedAt:now};if(id){const i=data.casos.findIndex(x=>x.id===id);data.casos[i]={...data.casos[i],...payload}}else{data.casos.unshift({id:uid(),createdAt:now,seed:false,...payload});addXP('wiki_create',titulo)}save();closeModal();renderCasosHome();renderSidebar()}
+function normSearch(s){
+  return String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
+function wikiBlob(c){
+  const files=(c.anexos||[]).map(a=>[(a.nome||''),(a.descricao||'')].join(' ')).join(' ');
+  return [c.titulo||'',c.texto||'',c.solucao||'',(c.tags||[]).join(' '),files].join(' ');
+}
+function filterWikiList(list, q, tag){
+  let out=list||[];
+  if(tag) out=out.filter(c=>(c.tags||[]).includes(tag));
+  const nq=normSearch(q);
+  if(nq) out=out.filter(c=>normSearch(wikiBlob(c)).includes(nq));
+  return out;
+}
+function allWikiTags(){
+  const set=new Set();
+  (data.casos||[]).forEach(c=>(c.tags||[]).forEach(t=>set.add(t)));
+  return Array.from(set).sort();
+}
+function setWikiTag(tag){
+  data.wikiTagFilter=(data.wikiTagFilter===tag)?'':tag;
+  renderCasosHome();
+  renderSidebar();
+}
+function setWikiQuery(val){
+  const s=document.getElementById('searchInput');
+  if(s && s.value!==val) s.value=val;
+  renderCasosHome();
+  renderSidebar();
+}
+function isWikiImage(anexo){
+  if(!anexo) return false;
+  if(anexo.isImage) return true;
+  const t=(anexo.tipo||'').toLowerCase();
+  if(t.indexOf('image/')===0) return true;
+  return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(anexo.nome||'');
+}
+function formatFileSize(n){
+  n=Number(n)||0;
+  if(n<1024) return n+' B';
+  if(n<1024*1024) return (n/1024).toFixed(1)+' KB';
+  return (n/(1024*1024)).toFixed(1)+' MB';
+}
+function safeFileName(name){
+  return String(name||'arquivo').replace(/[^a-zA-Z0-9._-]+/g,'_').slice(0,80) || 'arquivo';
+}
+function renderWikiAnexos(anexos, opts){
+  const list=anexos||[];
+  if(!list.length) return '';
+  const compact=opts&&opts.compact;
+  const images=list.filter(isWikiImage);
+  const files=list.filter(a=>!isWikiImage(a));
+  let html='';
+  if(images.length){
+    html += `<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${images.map(a=>`
+      <div style="flex:0 0 auto;max-width:180px">
+        <img src="${escapeHtml(a.url||'')}" alt="${escapeHtml(a.nome||'imagem')}" style="height:${compact?'72':'140'}px;max-width:180px;border-radius:6px;border:1px solid var(--border);object-fit:cover;cursor:pointer" onclick="window.open('${escapeHtml(a.url||'')}','_blank')" />
+        ${a.descricao?`<div style="font-size:.7rem;color:var(--text-muted);margin-top:3px">${escapeHtml(a.descricao)}</div>`:''}
+      </div>`).join('')}</div>`;
+  }
+  if(files.length){
+    html += `<div style="margin-top:8px">${files.map(a=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+        <div style="min-width:0">
+          <div style="font-size:.82rem;font-weight:600">📎 ${escapeHtml(a.nome||'arquivo')}</div>
+          <div style="font-size:.7rem;color:var(--text-muted)">${formatFileSize(a.size)}${a.descricao?' · '+escapeHtml(a.descricao):''}</div>
+        </div>
+        ${a.url?`<a class="btn btn-sm btn-outline" href="${escapeHtml(a.url)}" target="_blank" rel="noopener" download="${escapeHtml(a.nome||'arquivo')}">Baixar</a>`:''}
+      </div>`).join('')}</div>`;
+  }
+  return html;
+}
+function renderCasosHome(){
+  showDetail();
+  const q=((document.getElementById('searchInput')||{}).value||'');
+  const tag=data.wikiTagFilter||'';
+  const list=filterWikiList(data.casos||[], q, tag);
+  const tags=allWikiTags();
+  const chips=[''].concat(tags).map(t=>{
+    const label=t||'Todas';
+    const active=(!t && !tag) || (t && tag===t);
+    const click=t?`setWikiTag('${escapeHtml(t)}')`:`setWikiTag('')`;
+    return `<span class="tag-chip ${active?'active':''}" onclick="${click}">${escapeHtml(label)}</span>`;
+  }).join('');
+  const cards=list.map(c=>{
+    const n=(c.anexos||[]).length;
+    const preview=(c.texto||c.solucao||'').slice(0,140);
+    const thumbs=(c.anexos||[]).filter(isWikiImage).slice(0,3);
+    const thumbHtml=thumbs.length?`<div style="display:flex;gap:6px;margin-top:6px">${thumbs.map(a=>`<img src="${escapeHtml(a.url||'')}" style="height:44px;width:56px;object-fit:cover;border-radius:4px;border:1px solid var(--border)"/>`).join('')}</div>`:'';
+    return `<div class="info-card wide" style="margin-bottom:8px;cursor:pointer" onclick="selectCaso('${c.id}')">
+      <div class="info-card-label">${escapeHtml(c.titulo)}</div>
+      <div class="info-card-value" style="font-size:.8rem">${escapeHtml(preview)}</div>
+      ${thumbHtml}
+      <div style="margin-top:4px">${(c.tags||[]).map(tg=>`<span class="tag-chip" onclick="event.stopPropagation();setWikiTag('${escapeHtml(tg)}')">${escapeHtml(tg)}</span>`).join('')}${n?`<span class="tag-chip" style="cursor:default">📎 ${n} arquivo${n>1?'s':''}</span>`:''}</div>
+    </div>`;
+  }).join('')||'<div class="empty-msg">Nenhum artigo encontrado</div>';
+  document.getElementById('detailView').innerHTML=`
+    <div class="main-header">
+      <div class="main-header-info"><h2>Wiki</h2><div class="main-header-meta">${list.length} artigo${list.length===1?'':'s'}</div></div>
+      <div class="main-header-actions">
+        <button class="btn btn-sm btn-success" onclick="openCasoModal()">+ Artigo</button>
+      </div>
+    </div>
+    <div class="main-content">
+      <div style="margin-bottom:12px">
+        <input id="wikiSearchBox" value="${escapeHtml(q)}" placeholder="Buscar artigos, tags, drivers e imagens..." oninput="setWikiQuery(this.value)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px"/>
+      </div>
+      <div style="margin-bottom:12px">${chips}</div>
+      ${cards}
+    </div>`;
+}
+function selectCaso(id){
+  const c=(data.casos||[]).find(x=>x.id===id);
+  if(!c) return;
+  selectedId=id;
+  selectedType='caso';
+  showDetail();
+  document.getElementById('detailView').innerHTML=`
+    <div class="main-header">
+      <div class="main-header-info"><h2>${escapeHtml(c.titulo)}</h2></div>
+      <div class="main-header-actions">
+        <button class="btn btn-sm btn-outline" onclick="openCasoModal('${c.id}')">Editar</button>
+        <button class="btn btn-sm btn-outline" style="color:var(--danger)" onclick="deleteCaso('${c.id}')">Excluir</button>
+        <button class="btn btn-sm btn-outline" onclick="renderCasosHome()">Voltar</button>
+      </div>
+    </div>
+    <div class="main-content">
+      <div class="info-card wide"><div class="info-card-label">Resumo</div><div class="info-card-value" style="white-space:pre-wrap">${escapeHtml(c.texto||'')}</div></div>
+      <div class="info-card wide" style="margin-top:8px"><div class="info-card-label">Solução / explicação</div><div class="info-card-value" style="white-space:pre-wrap">${escapeHtml(c.solucao||'')}</div></div>
+      <div class="info-card wide" style="margin-top:8px">
+        <div class="info-card-label">Arquivos e imagens</div>
+        <div class="info-card-value">${(c.anexos&&c.anexos.length)?renderWikiAnexos(c.anexos):'<span style="color:var(--text-muted)">Nenhum arquivo neste artigo.</span>'}</div>
+      </div>
+      <div style="margin-top:8px">${(c.tags||[]).map(tg=>`<span class="tag-chip" onclick="setWikiTag('${escapeHtml(tg)}')">${escapeHtml(tg)}</span>`).join('')}</div>
+    </div>`;
+  renderSidebar();
+}
+function refreshWikiAnexoPreview(){
+  const cont=document.getElementById('wikiAnexoPreview');
+  if(!cont) return;
+  const list=window._wikiAnexos||[];
+  if(!list.length){ cont.innerHTML='<div style="font-size:.75rem;color:var(--text-muted)">Nenhum arquivo ainda.</div>'; return; }
+  cont.innerHTML=list.map((a,i)=>{
+    const img=isWikiImage(a) && a.url;
+    return `<div style="border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:6px">
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        ${img?`<img src="${escapeHtml(a.url)}" style="height:48px;width:64px;object-fit:cover;border-radius:4px;border:1px solid var(--border)"/>`:'<div style="font-size:1.2rem">📎</div>'}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.8rem;font-weight:600;word-break:break-all">${escapeHtml(a.nome||'arquivo')} <span style="color:var(--text-muted);font-weight:400">${formatFileSize(a.size)}</span></div>
+          <input value="${escapeHtml(a.descricao||'')}" placeholder="Explicação deste arquivo (opcional)" oninput="window._wikiAnexos[${i}].descricao=this.value" style="width:100%;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 6px;font-size:.78rem"/>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline" style="color:var(--danger)" onclick="removeWikiAnexo(${i})">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function removeWikiAnexo(i){
+  const arr=window._wikiAnexos||[];
+  const item=arr[i];
+  if(!item) return;
+  if(item.path && !item._file){ window._wikiAnexosRemoved=window._wikiAnexosRemoved||[]; window._wikiAnexosRemoved.push(item); }
+  arr.splice(i,1);
+  refreshWikiAnexoPreview();
+}
+function handleWikiFiles(files){
+  const MAX=50*1024*1024;
+  Array.from(files||[]).forEach(file=>{
+    if(file.size>MAX){ showToast((file.name||'Arquivo')+' ultrapassa 50 MB'); return; }
+    const rec={
+      id:uid(),
+      nome:file.name,
+      tipo:file.type||'',
+      size:file.size,
+      path:'',
+      url:'',
+      descricao:'',
+      isImage:(file.type||'').indexOf('image/')===0 || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(file.name||''),
+      _file:file
+    };
+    if(rec.isImage){
+      const reader=new FileReader();
+      reader.onload=e=>{ rec.url=e.target.result; refreshWikiAnexoPreview(); };
+      reader.readAsDataURL(file);
+    }
+    window._wikiAnexos=window._wikiAnexos||[];
+    window._wikiAnexos.push(rec);
+  });
+  refreshWikiAnexoPreview();
+}
+function openCasoModal(id){
+  const c=id?(data.casos||[]).find(x=>x.id===id):null;
+  window._wikiAnexos=(c&&c.anexos)?c.anexos.map(a=>Object.assign({},a)):[]
+  window._wikiAnexosRemoved=[];
+  document.getElementById('modal').style.display='flex';
+  document.getElementById('modal').innerHTML=`
+    <div class="modal-box" style="max-width:560px">
+      <h3>${c?'Editar artigo':'Novo artigo'}</h3>
+      <input type="hidden" id="m_id" value="${c?c.id:''}"/>
+      <div class="form-group"><label>Título</label><input id="m_titulo" value="${c?escapeHtml(c.titulo):''}"/></div>
+      <div class="form-group"><label>Resumo</label><textarea id="m_texto">${c?escapeHtml(c.texto||''):''}</textarea></div>
+      <div class="form-group"><label>Solução / explicação</label><textarea id="m_solucao" style="min-height:120px">${c?escapeHtml(c.solucao||''):''}</textarea></div>
+      <div class="form-group"><label>Tags</label><input id="m_tags" value="${c?(c.tags||[]).join(', '):''}" placeholder="ex: impressão, driver, fiscal"/></div>
+      <div class="form-group">
+        <label>Arquivos e imagens (até 50 MB cada)</label>
+        <div id="wikiDropZone" style="border:2px dashed var(--border);border-radius:8px;padding:16px;text-align:center;color:var(--text-muted);cursor:pointer;background:var(--bg)">
+          Arraste imagens, drivers, PDF ou zip aqui, ou clique para selecionar
+          <input type="file" id="wikiFile" multiple style="display:none"/>
+        </div>
+        <div id="wikiAnexoPreview" style="margin-top:8px"></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-success" id="wikiSaveBtn" onclick="saveCasoModal()">Salvar</button>
+      </div>
+    </div>`;
+  const zone=document.getElementById('wikiDropZone');
+  const fileInput=document.getElementById('wikiFile');
+  if(zone && fileInput){
+    zone.onclick=()=>fileInput.click();
+    zone.ondragover=e=>{ e.preventDefault(); zone.style.borderColor='var(--primary)'; };
+    zone.ondragleave=()=>zone.style.borderColor='var(--border)';
+    zone.ondrop=e=>{ e.preventDefault(); zone.style.borderColor='var(--border)'; handleWikiFiles(e.dataTransfer.files); };
+    fileInput.onchange=e=>handleWikiFiles(e.target.files);
+  }
+  refreshWikiAnexoPreview();
+}
+async function uploadWikiAnexo(casoId, anexo){
+  if(!anexo || !anexo._file) return anexo;
+  if(!window.firebase || !firebase.storage) throw new Error('storage-unavailable');
+  const storage=firebase.storage();
+  const path='team/main/wiki/'+casoId+'/'+anexo.id+'_'+safeFileName(anexo.nome);
+  const ref=storage.ref(path);
+  await ref.put(anexo._file);
+  const url=await ref.getDownloadURL();
+  return {
+    id:anexo.id,
+    nome:anexo.nome,
+    tipo:anexo.tipo||'',
+    size:anexo.size||0,
+    path:path,
+    url:url,
+    descricao:anexo.descricao||'',
+    isImage:!!anexo.isImage
+  };
+}
+async function deleteWikiStoragePath(path){
+  if(!path || !window.firebase || !firebase.storage) return;
+  try{ await firebase.storage().ref(path).delete(); }catch(e){ console.warn('storage delete', e); }
+}
+async function saveCasoModal(){
+  const id=document.getElementById('m_id').value;
+  const titulo=document.getElementById('m_titulo').value.trim();
+  if(!titulo){ showToast('Título obrigatório'); return; }
+  const now=new Date().toISOString();
+  const btn=document.getElementById('wikiSaveBtn');
+  if(btn){ btn.disabled=true; btn.textContent='Salvando...'; }
+  try{
+    const casoId=id||uid();
+    const pending=(window._wikiAnexos||[]);
+    const needsUpload=pending.some(a=>a && a._file);
+    let anexos=[];
+    if(needsUpload){
+      showToast('Enviando arquivos...');
+    }
+    for(const a of pending){
+      if(a && a._file){
+        anexos.push(await uploadWikiAnexo(casoId, a));
+      } else if(a){
+        const copy=Object.assign({}, a);
+        delete copy._file;
+        anexos.push(copy);
+      }
+    }
+    for(const rem of (window._wikiAnexosRemoved||[])){
+      if(rem && rem.path) await deleteWikiStoragePath(rem.path);
+    }
+    const payload={
+      titulo,
+      texto:document.getElementById('m_texto').value.trim(),
+      solucao:document.getElementById('m_solucao').value.trim(),
+      tags:document.getElementById('m_tags').value.split(',').map(s=>s.trim()).filter(Boolean),
+      anexos,
+      updatedAt:now
+    };
+    if(id){
+      const i=data.casos.findIndex(x=>x.id===id);
+      if(i>=0) data.casos[i]=Object.assign({}, data.casos[i], payload);
+    } else {
+      data.casos.unshift({id:casoId,createdAt:now,seed:false,...payload});
+      addXP('wiki_create',titulo);
+    }
+    save();
+    closeModal();
+    if(id) selectCaso(id); else renderCasosHome();
+    renderSidebar();
+    showToast(id?'Artigo atualizado':'Artigo criado');
+  }catch(e){
+    console.warn(e);
+    const code=e && (e.code||e.message)||'';
+    if(String(code).indexOf('storage')>=0 || String(code).indexOf('404')>=0 || String(code).indexOf('unavailable')>=0){
+      showToast('Não foi possível enviar os arquivos. O armazenamento ainda precisa ser ativado.');
+    } else {
+      showToast('Não foi possível salvar o artigo. Tente de novo.');
+    }
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='Salvar'; }
+  }
+}
+async function deleteCaso(id){
+  const c=(data.casos||[]).find(x=>x.id===id);
+  if(!c) return;
+  if(!confirm('Excluir o artigo "'+c.titulo+'" e os arquivos anexados?')) return;
+  for(const a of (c.anexos||[])){
+    if(a && a.path) await deleteWikiStoragePath(a.path);
+  }
+  data.casos=(data.casos||[]).filter(x=>x.id!==id);
+  save();
+  renderCasosHome();
+  renderSidebar();
+  showToast('Artigo excluído');
+}
 
 function renderTreinoHome(){showDetail();document.getElementById('detailView').innerHTML=`<div class="main-header"><div class="main-header-info"><h2>Treinos</h2></div><div class="main-header-actions"><button class="btn btn-sm btn-success" onclick="startNewTraining()">+</button></div></div><div class="main-content">${(data.trainings||[]).map(t=>{const p=treinoProgress(t);return `<div class="info-card wide" style="margin-bottom:8px;cursor:pointer" onclick="selectTraining('${t.id}')"><div class="info-card-label">${escapeHtml(t.clientName||'Treino')}</div><div class="info-card-value">${p.done}/${p.total} (${p.percent}%)</div></div>`}).join('')||'<div class="empty-msg">—</div>'}</div>`}
 
