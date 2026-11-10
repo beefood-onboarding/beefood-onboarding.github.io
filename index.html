@@ -237,6 +237,7 @@ body.theme-light .fiscal-chip{background:#f8fafc}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
 <script>
 
 const STORAGE_KEY='beefood_onboarding_v4';
@@ -335,7 +336,7 @@ function showLogin(){
         <input id="loginSenha" type="password" style="width:100%;background:#0b1220;border:1px solid #1f2a3d;color:#e5e7eb;padding:8px;border-radius:6px" placeholder="Senha" />
       </div>
       <button class="btn" id="loginBtn" style="width:100%;background:#3b82f6" onclick="doLogin()">Entrar</button>
-      <div style="font-size:.7rem;color:#64748b;margin-top:10px;text-align:center">No primeiro acesso, use seu nome e defina a senha (mínimo 6 caracteres). Depois, um admin cadastra os demais analistas.</div>
+      <div style="font-size:.7rem;color:#64748b;margin-top:10px;text-align:center">No primeiro acesso da equipe, use seu nome e defina a senha. Os demais são cadastrados por um admin e, no primeiro login ou após a senha ser redefinida, entram com a senha temporária e cadastram a própria.</div>
     </div>`;
   overlay.style.display = 'flex';
   const senhaEl=document.getElementById('loginSenha');
@@ -744,9 +745,16 @@ async function enterApp(user){
     }
     currentAnalyst=profile;
     localStorage.setItem('currentAnalystId', currentAnalyst.id);
+    const loginOverlay=document.getElementById('loginOverlay');
+    if(loginOverlay) loginOverlay.style.display='none';
+    if(profile.mustChangePassword){
+      try{ await promptNewPassword(); }
+      catch(err){
+        if(err && err.message==='password-change-cancelled') return;
+        throw err;
+      }
+    }
     loadPersonalData();
-    const overlay=document.getElementById('loginOverlay');
-    if(overlay) overlay.style.display='none';
     document.getElementById('app').style.display='';
     const btnA=document.getElementById('btnAnalysts');
     if(btnA) btnA.style.display=currentAnalyst.isAdmin?'inline-flex':'none';
@@ -769,6 +777,7 @@ async function enterApp(user){
     else if(typeof switchTab==='function') switchTab(currentTab||'dashboard');
   }catch(e){
     console.warn(e);
+    if(e && e.message==='password-change-cancelled') return;
     updateSyncStatus('Falha ao conectar', 'warn');
     showToast('Não foi possível carregar os dados da nuvem agora.');
   }finally{
@@ -800,27 +809,125 @@ function renderAuditList(){
   }).join('');
 }
 
+function teamFunctions(){
+  if(!window.firebase || !firebase.functions) return null;
+  try{ return firebase.app().functions('southamerica-east1'); }catch(e){ return null; }
+}
+function promptNewPassword(){
+  return new Promise((resolve, reject)=>{
+    let overlay=document.getElementById('setPassOverlay');
+    if(!overlay){
+      overlay=document.createElement('div');
+      overlay.id='setPassOverlay';
+      overlay.style.cssText='position:fixed;inset:0;background:#0b1220;display:flex;align-items:center;justify-content:center;z-index:10000;color:#e5e7eb';
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML=`
+      <div style="background:#111827;border:1px solid #1f2a3d;border-radius:12px;padding:28px;width:340px;max-width:90%">
+        <h2 style="margin:0 0 8px;font-size:1.1rem">Cadastre sua senha</h2>
+        <p style="font-size:.8rem;color:#94a3b8;margin:0 0 14px">É o seu primeiro acesso ou a senha foi redefinida. Escolha uma senha nova, com pelo menos 6 caracteres, diferente da temporária.</p>
+        <div class="form-group" style="margin-bottom:10px">
+          <label style="font-size:.75rem;color:#94a3b8">Nova senha</label>
+          <input id="newPass1" type="password" style="width:100%;background:#0b1220;border:1px solid #1f2a3d;color:#e5e7eb;padding:8px;border-radius:6px" />
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label style="font-size:.75rem;color:#94a3b8">Confirmar senha</label>
+          <input id="newPass2" type="password" style="width:100%;background:#0b1220;border:1px solid #1f2a3d;color:#e5e7eb;padding:8px;border-radius:6px" />
+        </div>
+        <button class="btn" id="saveNewPassBtn" style="width:100%;background:#3b82f6" onclick="submitNewPassword()">Salvar senha</button>
+        <button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="cancelNewPassword()">Sair</button>
+      </div>`;
+    overlay.style.display='flex';
+    window._newPassDone=()=>{ overlay.style.display='none'; resolve(); };
+    window._newPassCancel=()=>{ overlay.style.display='none'; reject(new Error('password-change-cancelled')); };
+    const p2=document.getElementById('newPass2');
+    if(p2) p2.addEventListener('keydown', ev=>{ if(ev.key==='Enter') submitNewPassword(); });
+  });
+}
+async function submitNewPassword(){
+  const p1=(document.getElementById('newPass1')&&document.getElementById('newPass1').value)||'';
+  const p2=(document.getElementById('newPass2')&&document.getElementById('newPass2').value)||'';
+  if(p1.length<6){ alert('A senha precisa ter ao menos 6 caracteres'); return; }
+  if(p1!==p2){ alert('As senhas não coincidem'); return; }
+  const user=firebase.auth().currentUser;
+  if(!user){ alert('Sessão expirada. Entre de novo.'); return; }
+  const btn=document.getElementById('saveNewPassBtn');
+  if(btn){ btn.disabled=true; btn.textContent='Salvando...'; }
+  try{
+    try{
+      const cred=firebase.auth.EmailAuthProvider.credential(user.email, p1);
+      await user.reauthenticateWithCredential(cred);
+      alert('Escolha uma senha diferente da temporária');
+      return;
+    }catch(e){
+      const code=e && e.code || '';
+      if(code!=='auth/wrong-password' && code!=='auth/invalid-credential' && code!=='auth/invalid-login-credentials'){
+        throw e;
+      }
+    }
+    await user.updatePassword(p1);
+    if(currentAnalyst && currentAnalyst.id){
+      await firebase.firestore().doc('team/main/analysts/'+currentAnalyst.id).update({
+        mustChangePassword:false,
+        passwordChangedAt:new Date().toISOString()
+      });
+      currentAnalyst.mustChangePassword=false;
+    }
+    showToast('Senha cadastrada');
+    if(typeof window._newPassDone==='function') window._newPassDone();
+  }catch(e){
+    console.warn(e);
+    alert(authErrorMessage(e) || 'Não foi possível salvar a senha. Tente de novo.');
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='Salvar senha'; }
+  }
+}
+async function cancelNewPassword(){
+  try{ await firebase.auth().signOut(); }catch(e){}
+  currentAnalyst=null;
+  localStorage.removeItem('currentAnalystId');
+  showLogin();
+  if(typeof window._newPassCancel==='function') window._newPassCancel();
+}
+async function getTempPassword(){
+  const snap=await firebase.firestore().doc('team/main/meta/authSettings').get();
+  const p=snap.exists && snap.data() && snap.data().tempPassword;
+  if(!p || String(p).length<6) throw new Error('no-temp-password');
+  return String(p);
+}
 function openAnalystManager(){
   if(!currentAnalyst || !currentAnalyst.isAdmin){ showToast('Apenas Admin'); return; }
+  const adminCount=(analysts||[]).filter(a=>a.isAdmin).length;
   document.getElementById('modal').style.display='flex';
   document.getElementById('modal').innerHTML = `
-    <div class="modal-box" style="max-width:420px">
-      <h3>Analistas</h3>
-      <div style="max-height:200px;overflow:auto;margin:8px 0">
-        ${analysts.map(a=>`
-          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
-            <span>${escapeHtml(a.nome)} ${a.isAdmin?'<span class="badge" style="background:#a855f7;color:#fff;font-size:.65rem">Admin</span>':''}</span>
-            ${a.id!==currentAnalyst.id?`<button class="btn btn-sm btn-outline" onclick="removeAnalyst('${a.id}')">Remover</button>`:''}
-          </div>`).join('')}
+    <div class="modal-box" style="max-width:520px">
+      <h3>Analistas e admins</h3>
+      <div style="max-height:260px;overflow:auto;margin:8px 0">
+        ${(analysts||[]).map(a=>{
+          const self=a.id===currentAnalyst.id;
+          const canDemote=!self && a.isAdmin && adminCount>1;
+          return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+              <span>${escapeHtml(a.nome)} ${a.isAdmin?'<span class="badge" style="background:#a855f7;color:#fff;font-size:.65rem">Admin</span>':''}${a.mustChangePassword?'<span class="badge" style="background:#eab308;color:#111;font-size:.65rem;margin-left:4px">Trocar senha</span>':''}${self?'<span style="font-size:.7rem;color:var(--text-muted)"> (você)</span>':''}</span>
+            </div>
+            ${self?'':`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">
+              ${a.isAdmin
+                ? (canDemote?`<button class="btn btn-sm btn-outline" onclick="setAnalystAdmin('${a.id}', false)">Remover admin</button>`:'')
+                : `<button class="btn btn-sm btn-outline" onclick="setAnalystAdmin('${a.id}', true)">Tornar admin</button>`}
+              <button class="btn btn-sm btn-outline" onclick="resetAnalystPassword('${a.id}')">Redefinir senha</button>
+              <button class="btn btn-sm btn-outline" style="color:var(--danger)" onclick="removeAnalyst('${a.id}')">Remover</button>
+            </div>`}
+          </div>`;
+        }).join('')||'<div class="empty-msg">Nenhum analista</div>'}
       </div>
       <div class="form-group">
-        <label>Novo analista</label>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <input id="newAnalystName" placeholder="Nome" style="flex:1;min-width:120px" />
-          <input id="newAnalystPass" type="password" placeholder="Senha inicial" style="flex:1;min-width:120px" />
-          <button class="btn btn-sm btn-success" onclick="addAnalyst()">+</button>
+        <label>Novo acesso</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <input id="newAnalystName" placeholder="Nome" style="flex:1;min-width:140px" />
+          <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;white-space:nowrap"><input type="checkbox" id="newAnalystIsAdmin"/> Cadastrar como admin</label>
+          <button class="btn btn-sm btn-success" onclick="addAnalyst()">Cadastrar</button>
         </div>
-        <p style="font-size:.7rem;color:var(--text-muted);margin-top:6px">A senha inicial precisa ter ao menos 6 caracteres.</p>
+        <p style="font-size:.7rem;color:var(--text-muted);margin-top:6px">A pessoa entra com a senha temporária padrão e, no primeiro acesso, cadastra a senha dela.</p>
       </div>
       <div style="display:flex;justify-content:flex-end;margin-top:10px">
         <button class="btn btn-outline" onclick="closeModal()">Fechar</button>
@@ -829,31 +936,92 @@ function openAnalystManager(){
 }
 
 async function addAnalyst(){
+  if(!currentAnalyst || !currentAnalyst.isAdmin){ showToast('Apenas Admin'); return; }
   const nome=(document.getElementById('newAnalystName').value||'').trim();
-  const senha=(document.getElementById('newAnalystPass')&&document.getElementById('newAnalystPass').value)||'';
-  if(!nome) return;
-  if(!senha || senha.length<6){ showToast('Informe uma senha inicial com ao menos 6 caracteres'); return; }
+  const asAdmin=!!(document.getElementById('newAnalystIsAdmin')&&document.getElementById('newAnalystIsAdmin').checked);
+  if(!nome){ showToast('Informe o nome'); return; }
   if(analysts.some(a=>a.nome.toLowerCase()===nome.toLowerCase())){ showToast('Já existe'); return; }
   try{
+    const fns=teamFunctions();
+    if(fns){
+      try{
+        await fns.httpsCallable('createAnalyst')({nome, isAdmin:asAdmin});
+        await addAudit('create','analysts','', nome);
+        openAnalystManager();
+        showToast(asAdmin?'Admin cadastrado':'Analista cadastrado');
+        return;
+      }catch(e){
+        const code=e && (e.code||'');
+        if(code==='already-exists' || (e.message||'').indexOf('Já existe')>=0){
+          showToast('Já existe um acesso com esse nome');
+          return;
+        }
+        if(code && String(code).indexOf('not-found')<0 && String(code).indexOf('unimplemented')<0 && String(code).indexOf('unavailable')<0){
+          console.warn(e);
+        }
+      }
+    }
+    const temp=await getTempPassword();
     const secondary=getSecondaryAuth();
     if(!secondary){ showToast('Nuvem indisponível'); return; }
-    const cred=await secondary.createUserWithEmailAndPassword(analystEmail(nome), senha);
+    const cred=await secondary.createUserWithEmailAndPassword(analystEmail(nome), temp);
     await firebase.firestore().doc('team/main/analysts/'+cred.user.uid).set({
       id:cred.user.uid,
       nome,
-      isAdmin:false,
+      isAdmin:asAdmin,
+      mustChangePassword:true,
       createdAt:new Date().toISOString(),
-      email:cred.user.email||analystEmail(nome)
+      email:cred.user.email||analystEmail(nome),
+      createdBy:currentAnalyst.id
     });
     try{ await secondary.signOut(); }catch(e){}
     await addAudit('create','analysts', cred.user.uid, nome);
     openAnalystManager();
-    showToast('Analista adicionado');
+    showToast(asAdmin?'Admin cadastrado':'Analista cadastrado');
   }catch(e){
     console.warn(e);
-    if(e && e.code==='auth/email-already-in-use') showToast('Já existe um acesso com esse nome');
-    else if(e && e.code==='auth/weak-password') showToast('A senha precisa ter ao menos 6 caracteres');
-    else showToast('Não foi possível cadastrar o analista');
+    if(e && e.code==='auth/email-already-in-use') showToast('Já existe um acesso com esse nome. Use Redefinir senha.');
+    else if(e && (e.message==='no-temp-password' || (e.code||'')==='failed-precondition')) showToast('A senha temporária ainda não está configurada.');
+    else showToast('Não foi possível cadastrar o acesso');
+  }
+}
+async function setAnalystAdmin(id, makeAdmin){
+  if(!currentAnalyst || !currentAnalyst.isAdmin){ showToast('Apenas Admin'); return; }
+  if(id===currentAnalyst.id && !makeAdmin){ showToast('Você não pode remover o próprio acesso de admin'); return; }
+  if(!makeAdmin){
+    const adminCount=(analysts||[]).filter(a=>a.isAdmin).length;
+    if(adminCount<=1){ showToast('Precisa permanecer pelo menos um admin'); return; }
+  }
+  const alvo=(analysts||[]).find(a=>a.id===id);
+  try{
+    await firebase.firestore().doc('team/main/analysts/'+id).update({isAdmin:!!makeAdmin});
+    await addAudit('upsert','analysts', id, (alvo&&alvo.nome)||id);
+    openAnalystManager();
+    showToast(makeAdmin?'Acesso de admin liberado':'Acesso de admin removido');
+  }catch(e){
+    console.warn(e);
+    showToast('Não foi possível atualizar o acesso');
+  }
+}
+async function resetAnalystPassword(id){
+  if(!currentAnalyst || !currentAnalyst.isAdmin){ showToast('Apenas Admin'); return; }
+  const alvo=(analysts||[]).find(a=>a.id===id);
+  if(!confirm('Redefinir a senha de '+(alvo&&alvo.nome?alvo.nome:'esta pessoa')+' para a temporária padrão? No próximo acesso ela precisará cadastrar uma senha nova.')) return;
+  try{
+    const fns=teamFunctions();
+    if(!fns) throw new Error('functions-unavailable');
+    await fns.httpsCallable('resetAnalystPassword')({uid:id});
+    await addAudit('upsert','analysts', id, 'redefinição de senha');
+    openAnalystManager();
+    showToast('Senha redefinida. No próximo acesso a pessoa cadastra uma nova.');
+  }catch(e){
+    console.warn(e);
+    const code=e && (e.code||e.message)||'';
+    if(String(code).indexOf('not-found')>=0 || String(code).indexOf('unimplemented')>=0 || String(code).indexOf('unavailable')>=0 || String(code).indexOf('functions')>=0){
+      showToast('A redefinição automática ainda precisa do serviço de funções no Firebase.');
+    } else {
+      showToast('Não foi possível redefinir a senha');
+    }
   }
 }
 
