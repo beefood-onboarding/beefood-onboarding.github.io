@@ -1253,6 +1253,7 @@ if(data.settings.theme==='light') document.body.classList.add('theme-light');
 
 // === MÓDULOS OPCIONAIS (configuração da equipe, sincronizada em meta/config.settings.modules) ===
 const OPTIONAL_MODULES=[
+  {key:'clientes',label:'Clientes',desc:'Carteira de clientes e acompanhamento do onboarding',def:true},
   {key:'agenda',label:'Agenda',desc:'Compromissos e agendamentos da equipe'},
   {key:'treino',label:'Treino',desc:'Sessões e checklist de treinamento'},
   {key:'carreira',label:'Carreira',desc:'XP, níveis, conquistas e streak'}
@@ -1260,16 +1261,17 @@ const OPTIONAL_MODULES=[
 function normalizeModules(){
   if(!data.settings) data.settings={sound:true,theme:'dark',finalIncluirFiscal:false,finalIncluirPosVenda:false};
   const cur=data.settings.modules||{};
-  data.settings.modules={agenda:cur.agenda===true,carreira:cur.carreira===true,treino:cur.treino===true};
+  data.settings.modules={agenda:cur.agenda===true,carreira:cur.carreira===true,clientes:cur.clientes!==false,treino:cur.treino===true};
 }
 function modulesPayload(){
   const m=(data.settings&&data.settings.modules)||{};
-  return {agenda:m.agenda===true,carreira:m.carreira===true,treino:m.treino===true};
+  return {agenda:m.agenda===true,carreira:m.carreira===true,clientes:m.clientes!==false,treino:m.treino===true};
 }
 function isModuleOn(tab){
-  if(!OPTIONAL_MODULES.some(x=>x.key===tab)) return true;
+  const mod=OPTIONAL_MODULES.find(x=>x.key===tab);
+  if(!mod) return true;
   const m=(data.settings&&data.settings.modules)||{};
-  return m[tab]===true;
+  return mod.def ? m[tab]!==false : m[tab]===true;
 }
 let lastModulesKey=null;
 function applyModuleVisibility(){
@@ -1564,7 +1566,7 @@ area.innerHTML=list.map(c=>{
     <div class="list-prog"><span style="width:${p.percent}%"></span></div>
   </div>`;
 }).join('')||'<div class="empty-msg">Nenhum cliente</div>'}
-function selectClient(id){const c=data.clients.find(x=>x.id===id);if(!c)return;selectedId=id;selectedType='client';c.lastAccessedAt=new Date().toISOString();save();showDetail();renderClientDetail();renderSidebar()}
+function selectClient(id){if(!isModuleOn('clientes')){if(currentTab!=='dashboard')switchTab('dashboard');return}const c=data.clients.find(x=>x.id===id);if(!c)return;selectedId=id;selectedType='client';c.lastAccessedAt=new Date().toISOString();save();showDetail();renderClientDetail();renderSidebar()}
 
 function renderClientDetail(){
   const c=data.clients.find(x=>x.id===selectedId);if(!c)return;
@@ -1770,6 +1772,7 @@ function showBitrixMenu(clientId){const list=data.bitrixTemplates||[];if(!list.l
 function applyBitrixTemplate(tplId,clientId){const tpl=(data.bitrixTemplates||[]).find(t=>t.id===tplId);const c=clientId?data.clients.find(x=>x.id===clientId):null;if(!tpl)return;let text=(tpl.texto||'').replace(/\{\{nome\}\}/g,c?c.nome:'…').replace(/\{\{codigo\}\}/g,c&&c.codigo?c.codigo:'…').replace(/\{\{motivo\}\}/g,'aguardando retorno').replace(/\{\{tipo\}\}/g,c&&c.tipo?c.tipo:'…');navigator.clipboard.writeText(text).then(()=>showToast('Bitrix copiado'))}
 
 function openClientModal(id){
+  if(!isModuleOn('clientes')) return;
   const c=id?data.clients.find(x=>x.id===id):null;
   document.getElementById('modal').style.display='flex';
   document.getElementById('modal').innerHTML=`
@@ -1821,7 +1824,7 @@ function saveClientModal(){
 function onUfChange(){/* removed */}
 
 function renderDashboard(){showDetail();const m=computeMetrics();const alerts=[];(data.clients||[]).forEach(c=>{(c.alertas||[]).filter(a=>!a.done&&new Date(a.quando)<=new Date(Date.now()+86400000)).forEach(a=>alerts.push({c,a}))});const meuDia=(data.clients||[]).filter(isMeuDia);const backupBanner=needsWeeklyBackup()?`<div class="backup-banner"><span>💾 Backup semanal pendente</span><button class="btn btn-sm btn-success" onclick="exportData()">Baixar</button></div>`:'';document.getElementById('detailView').innerHTML=`<div class="main-header"><div class="main-header-info"><h2>Hoje</h2><div class="main-header-meta">Meu dia + alertas + SLA</div></div></div><div class="main-content">${backupBanner}<div class="info-grid"><div class="info-card"><div class="info-card-label">Ativos</div><div class="info-card-value">${m.activeClients}</div></div><div class="info-card"><div class="info-card-label">Go-lives</div><div class="info-card-value">${m.goLives}</div></div><div class="info-card"><div class="info-card-label">Meu dia</div><div class="info-card-value">${meuDia.length}</div></div><div class="info-card"><div class="info-card-label">SLA atraso</div><div class="info-card-value">${m.slaLateActive}</div></div>${isModuleOn('carreira')?`<div class="info-card"><div class="info-card-label">XP</div><div class="info-card-value">${m.xp}</div></div><div class="info-card"><div class="info-card-label">Streak</div><div class="info-card-value">${m.streak}🔥</div></div>`:''}</div>
-<h3 style="font-size:.9rem;margin:8px 0">Só meu dia</h3>${meuDia.slice(0,20).map(c=>`<div class="list-item" onclick="switchTab('clientes');setTimeout(()=>selectClient('${c.id}'),30)" style="border-left-color:${c.cor||'var(--primary)'}"><div class="list-item-title">${escapeHtml(c.nome)}</div><div class="list-item-meta">${progressOf(c).percent}% · ${getStatus(c)}</div></div>`).join('')||'<div class="empty-msg">Nada prioritário</div>'}
+<h3 style="font-size:.9rem;margin:8px 0">Só meu dia</h3>${meuDia.slice(0,20).map(c=>`<div class="list-item" ${isModuleOn('clientes')?`onclick="switchTab('clientes');setTimeout(()=>selectClient('${c.id}'),30)"`:''} style="${isModuleOn('clientes')?'':'cursor:default;'}border-left-color:${c.cor||'var(--primary)'}"><div class="list-item-title">${escapeHtml(c.nome)}</div><div class="list-item-meta">${progressOf(c).percent}% · ${getStatus(c)}</div></div>`).join('')||'<div class="empty-msg">Nada prioritário</div>'}
 <h3 style="font-size:.9rem;margin:12px 0 6px">Alertas 24h</h3>${alerts.slice(0,15).map(x=>`<div class="history-item"><div class="time">${fmt(x.a.quando)}</div>${escapeHtml(x.c.nome)} — ${escapeHtml(x.a.texto)}</div>`).join('')||'<div class="empty-msg">Nenhum</div>'}</div>`}
 
 function renderCarreira(){try{showDetail();ensureGamification();refreshBadges(false);const m=computeMetrics();const lv=currentLevel(m.xp);const w=computeWeekStats();const unlocked=new Set((data.gamification&&data.gamification.badgesUnlocked)||[]);
