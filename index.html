@@ -234,6 +234,7 @@ body.theme-light .fiscal-chip{background:#f8fafc}
           <option value="media">Média</option>
           <option value="baixa">Baixa</option>
         </select>
+        <select id="ownerFilter" onchange="setClientOwnerFilter(this.value)" style="display:none" title="Carteira por analista"></select>
       </div>
     </div>
     <div class="list-count" id="listCount">—</div>
@@ -482,7 +483,7 @@ function markSharedDirty(){
       if(!item) return;
       if(!item.id) item.id=uid();
       const prev=remote[item.id];
-      if(!prev || recKey(prev)!==recKey(item)){
+      if(!prev || syncCmpKey(prev)!==syncCmpKey(item)){
         fbDirty[col]=fbDirty[col]||{};
         if(fbDirty[col][item.id]!=='delete') fbDirty[col][item.id]='upsert';
       }
@@ -535,17 +536,19 @@ async function flushToCloud(forceAll){
     const dirty=fbDirty[col]||{};
     Object.keys(dirty).forEach(id=>{
       if(dirty[id]==='delete'){
-        ops.push({type:'delete', ref:team.collection(col).doc(id)});
+        ops.push({type:'delete', col, id, ref:team.collection(col).doc(id)});
         const prev=(fbRemote[col]||{})[id];
         audits.push({action:'delete', collection:col, recordId:id, title:(prev && (prev.nome||prev.titulo))||id});
       }else{
         const item=(data[col]||[]).find(x=>x && x.id===id);
         if(!item) return;
-        const payload=fbSanitize(Object.assign({}, item, {
-          updatedAt:item.updatedAt||new Date().toISOString(),
-          updatedBy:currentAnalyst.nome
-        }));
-        ops.push({type:'set', ref:team.collection(col).doc(id), payload});
+        if(col==='clients' && item.ownerUid==null && !(fbRemote.clients||{})[id]){
+          item.ownerUid=myUid(); item.ownerNome=currentAnalyst.nome||'';
+        }
+        if(!item.updatedAt) item.updatedAt=new Date().toISOString();
+        item.updatedBy=currentAnalyst.nome;
+        const payload=fbSanitize(item);
+        ops.push({type:'set', col, id, ref:team.collection(col).doc(id), payload});
         audits.push({action:'upsert', collection:col, recordId:id, title:item.nome||item.titulo||id});
       }
     });
@@ -570,10 +573,33 @@ async function flushToCloud(forceAll){
     return;
   }
   updateSyncStatus('Sincronizando...', 'warn');
+  // Clientes são gravados um a um: uma recusa de permissão (cliente de outro analista)
+  // não pode travar a sincronização do resto da equipe.
+  const clientOps=ops.filter(op=>op.col==='clients');
+  const otherOps=ops.filter(op=>op.col!=='clients');
+  let denied=0;
+  for(const op of clientOps){
+    try{
+      if(op.type==='delete') await op.ref.delete();
+      else await op.ref.set(op.payload, {merge:true});
+    }catch(err){
+      if(err && err.code==='permission-denied'){
+        denied++;
+        const remoteItem=(fbRemote.clients||{})[op.id];
+        const arr=data.clients||[];
+        const idx=arr.findIndex(x=>x && x.id===op.id);
+        if(remoteItem){ if(idx>=0) arr[idx]=Object.assign({}, remoteItem); else arr.push(Object.assign({}, remoteItem)); }
+        else if(idx>=0) arr.splice(idx,1);
+        const ai=audits.findIndex(a=>a.collection==='clients' && a.recordId===op.id);
+        if(ai>=0) audits.splice(ai,1);
+      }else throw err;
+    }
+  }
+  if(denied){ showToast('Alguns clientes são de outro analista e não foram alterados'); try{ renderSidebar(); }catch(e){} }
   const CHUNK=400;
-  for(let i=0;i<ops.length;i+=CHUNK){
+  for(let i=0;i<otherOps.length;i+=CHUNK){
     const batch=firebase.firestore().batch();
-    ops.slice(i,i+CHUNK).forEach(op=>{
+    otherOps.slice(i,i+CHUNK).forEach(op=>{
       if(op.type==='delete') batch.delete(op.ref);
       else batch.set(op.ref, op.payload, {merge:true});
     });
@@ -655,6 +681,22 @@ function startTeamListeners(){
   fbMetaReady=false;
   const team=teamRef();
   FB_COLLECTIONS.forEach(col=>{
+    if(col==='clients' && !isAdminUser()){
+      // Analista comum: só a própria carteira + clientes sem responsável
+      const parts={mine:null, none:null};
+      const emit=()=>{
+        if(!parts.mine || !parts.none) return;
+        const map={};
+        parts.mine.forEach(d=>{ map[d.id]=d; });
+        parts.none.forEach(d=>{ map[d.id]=d; });
+        applyCollectionSnapshot('clients', {docs:Object.values(map)});
+      };
+      const onErr=err=>{ console.warn(err); updateSyncStatus('Erro na sincronização', 'warn'); };
+      const toDocs=snap=>snap.docs.map(d=>{ const obj=d.data(); return {id:d.id, data:()=>obj}; });
+      fbUnsubs.push(team.collection('clients').where('ownerUid','==',myUid()).onSnapshot(snap=>{ parts.mine=toDocs(snap); emit(); }, onErr));
+      fbUnsubs.push(team.collection('clients').where('ownerUid','==','').onSnapshot(snap=>{ parts.none=toDocs(snap); emit(); }, onErr));
+      return;
+    }
     const unsub=team.collection(col).onSnapshot(snap=>{
       applyCollectionSnapshot(col, snap);
     }, err=>{
@@ -667,6 +709,7 @@ function startTeamListeners(){
     analysts=snap.docs.map(d=>Object.assign({id:d.id}, d.data()));
     try{ localStorage.setItem(ANALYSTS_KEY, JSON.stringify(analysts.map(a=>({id:a.id,nome:a.nome,isAdmin:!!a.isAdmin,createdAt:a.createdAt||''})))); }catch(e){}
     fbAnalystsReady=true;
+    try{ renderOwnerFilter(); }catch(e){}
     const btnA=document.getElementById('btnAnalysts');
     if(btnA && currentAnalyst) btnA.style.display=currentAnalyst.isAdmin?'inline-flex':'none';
     const box=document.getElementById('analystManagerList');
@@ -1146,6 +1189,14 @@ async function loadFromTeam(){
     if(!window.firebase || !firebase.auth().currentUser) throw new Error('Sem sessão');
     const team=teamRef();
     for(const col of FB_COLLECTIONS){
+      if(col==='clients' && !isAdminUser()){
+        const a=await team.collection('clients').where('ownerUid','==',myUid()).get();
+        const b=await team.collection('clients').where('ownerUid','==','').get();
+        const map={};
+        a.docs.concat(b.docs).forEach(d=>{ const obj=d.data(); map[d.id]={id:d.id, data:()=>obj}; });
+        applyCollectionSnapshot(col, {docs:Object.values(map)});
+        continue;
+      }
       const snap=await team.collection(col).get();
       applyCollectionSnapshot(col, snap);
     }
@@ -1251,6 +1302,64 @@ normalizeModules();
 if(data.settings.theme==='light') document.body.classList.add('theme-light');
 
 
+
+// === CARTEIRA PESSOAL DE CLIENTES (ownerUid = uid do analista; '' = sem responsável) ===
+function myUid(){ return (currentAnalyst&&currentAnalyst.id)||((window.firebase&&firebase.auth&&firebase.auth().currentUser)||{}).uid||''; }
+function isAdminUser(){ return !!(currentAnalyst&&currentAnalyst.isAdmin); }
+function analystNameById(id){ const a=(analysts||[]).find(x=>x&&x.id===id); return a?a.nome:''; }
+function clientOwnerName(c){ if(!c||!c.ownerUid) return 'Sem responsável'; return analystNameById(c.ownerUid)||c.ownerNome||'—'; }
+let clientOwnerFilter='all';
+try{ clientOwnerFilter=localStorage.getItem('beefood_owner_filter')||'all'; }catch(e){}
+function visibleClients(){
+  const all=data.clients||[];
+  const me=myUid();
+  if(!isAdminUser()) return all.filter(c=>c&&(!c.ownerUid||c.ownerUid===me));
+  const f=clientOwnerFilter||'all';
+  if(f==='all') return all;
+  if(f==='mine') return all.filter(c=>c&&c.ownerUid===me);
+  if(f==='none') return all.filter(c=>c&&!c.ownerUid);
+  return all.filter(c=>c&&c.ownerUid===f);
+}
+function myOwnClients(){ const me=myUid(); return (data.clients||[]).filter(c=>c&&(c.ownerUid===me||(!c.ownerUid&&!isAdminUser()))); }
+function ownerFilterLabel(){
+  const f=clientOwnerFilter||'all';
+  if(f==='all') return 'Todos os analistas';
+  if(f==='mine') return 'Meus clientes';
+  if(f==='none') return 'Sem responsável';
+  return analystNameById(f)||'Analista';
+}
+function setClientOwnerFilter(v){
+  clientOwnerFilter=v||'all';
+  try{ localStorage.setItem('beefood_owner_filter', clientOwnerFilter); }catch(e){}
+  renderSidebar();
+  if(currentTab==='dashboard' && !selectedId) renderDashboard();
+}
+function renderOwnerFilter(){
+  const sel=document.getElementById('ownerFilter'); if(!sel) return;
+  if(!isAdminUser()){ sel.style.display='none'; return; }
+  sel.style.display='';
+  const me=myUid();
+  const others=(analysts||[]).filter(a=>a&&a.id&&a.id!==me).slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'));
+  const opts=[['all','Todos os analistas'],['mine','Meus clientes'],['none','Sem responsável']].concat(others.map(a=>[a.id,a.nome||'—']));
+  if(!opts.some(o=>o[0]===clientOwnerFilter)) clientOwnerFilter='all';
+  const html=opts.map(o=>`<option value="${escapeHtml(o[0])}" ${o[0]===clientOwnerFilter?'selected':''}>${escapeHtml(o[1])}</option>`).join('');
+  if(sel.innerHTML!==html) sel.innerHTML=html;
+}
+function claimClient(id){
+  const c=(data.clients||[]).find(x=>x.id===id); if(!c) return;
+  if(c.ownerUid && c.ownerUid!==myUid() && !isAdminUser()){ showToast('Cliente de outro analista'); return; }
+  c.ownerUid=myUid(); c.ownerNome=(currentAnalyst&&currentAnalyst.nome)||'';
+  c.updatedAt=new Date().toISOString();
+  save(); renderSidebar(); if(selectedId===id) renderClientDetail();
+  showToast('Cliente agora está na sua carteira');
+}
+// Comparação para sync: ignora carimbos de atualização e campos undefined
+function syncCmpKey(obj){
+  const o=fbSanitize(obj)||{};
+  if(o && typeof o==='object'){ delete o.updatedAt; delete o.updatedBy; }
+  return recKey(o);
+}
+
 // === MÓDULOS OPCIONAIS (configuração da equipe, sincronizada em meta/config.settings.modules) ===
 const OPTIONAL_MODULES=[
   {key:'clientes',label:'Clientes',desc:'Carteira de clientes e acompanhamento do onboarding',def:true},
@@ -1315,7 +1424,7 @@ function daysSince(iso){if(!iso)return 999;return Math.floor((Date.now()-new Dat
 function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function mapTasks(list){return (list||[]).map(t=>({id:uid(),texto:t,done:false}))}
 
-function createClient(d){const now=new Date().toISOString();return{id:uid(),nome:d.nome||'',codigo:d.codigo||'',telefone:d.telefone||'',prioridade:d.prioridade||'media',tipo:d.tipo||'completo',tags:d.tags||[],cor:d.cor||'var(--primary)',observacoes:d.observacoes||'',slaDate:d.slaDate||'',uf:d.uf||'',modeloFiscal:d.modeloFiscal||'',cscId:d.cscId||'',cscToken:d.cscToken||'',certificadoTipo:d.certificadoTipo||'',certificadoValidade:d.certificadoValidade||'',stoneCode:d.stoneCode||'',pinpadPorta:d.pinpadPorta||'',posVendaD7:false,posVendaD30:false,handoffNote:'',pessoal:mapTasks(PESSOAL_DEFAULT),roteiro:mapTasks(ROTEIRO_DEFAULT),implementacao:mapTasks(IMPL_DEFAULT),alertas:[],history:[],archived:false,createdAt:now,updatedAt:now,lastAccessedAt:now,goLiveAt:null}}
+function createClient(d){const now=new Date().toISOString();return{ownerUid:d.ownerUid!=null?d.ownerUid:myUid(),ownerNome:d.ownerNome!=null?d.ownerNome:((currentAnalyst&&currentAnalyst.nome)||''),id:uid(),nome:d.nome||'',codigo:d.codigo||'',telefone:d.telefone||'',prioridade:d.prioridade||'media',tipo:d.tipo||'completo',tags:d.tags||[],cor:d.cor||'var(--primary)',observacoes:d.observacoes||'',slaDate:d.slaDate||'',uf:d.uf||'',modeloFiscal:d.modeloFiscal||'',cscId:d.cscId||'',cscToken:d.cscToken||'',certificadoTipo:d.certificadoTipo||'',certificadoValidade:d.certificadoValidade||'',stoneCode:d.stoneCode||'',pinpadPorta:d.pinpadPorta||'',posVendaD7:false,posVendaD30:false,handoffNote:'',pessoal:mapTasks(PESSOAL_DEFAULT),roteiro:mapTasks(ROTEIRO_DEFAULT),implementacao:mapTasks(IMPL_DEFAULT),alertas:[],history:[],archived:false,createdAt:now,updatedAt:now,lastAccessedAt:now,goLiveAt:null}}
 function normalizeClient(c){if(!c.pessoal)c.pessoal=mapTasks(PESSOAL_DEFAULT);if(!c.roteiro)c.roteiro=mapTasks(ROTEIRO_DEFAULT);if(!c.implementacao)c.implementacao=mapTasks(IMPL_DEFAULT);if(!c.alertas)c.alertas=[];if(!c.history)c.history=[];if(!c.tags)c.tags=[];['uf','modeloFiscal','cscId','cscToken','certificadoTipo','certificadoValidade','stoneCode','pinpadPorta','handoffNote'].forEach(k=>{if(c[k]==null)c[k]=''});if(c.posVendaD7==null)c.posVendaD7=false;if(c.posVendaD30==null)c.posVendaD30=false;if(!c.cor)c.cor='var(--primary)';return c}
 (data.clients||[]).forEach(normalizeClient);
 
@@ -1417,7 +1526,7 @@ const MANUAL_SECTIONS = [
 ];
 
 function treinoProgress(t){const steps=getTreinoSteps(t.tipo||'completo');let done=0;steps.forEach(s=>{if(t.done&&t.done[s.id])done++});return{done,total:steps.length,percent:steps.length?Math.round(done/steps.length*100):0}}
-function computeMetrics(){ensureGamification();const clients=data.clients||[];const active=clients.filter(c=>!c.archived);const goLives=clients.filter(c=>c.goLiveAt||getStatus(c)==='concluido').length;let tasksDone=0,tasksTotal=0;active.forEach(c=>['pessoal','roteiro','implementacao'].forEach(k=>(c[k]||[]).forEach(t=>{tasksTotal++;if(t.done)tasksDone++})));let trainingsDone=0;(data.trainings||[]).forEach(t=>{const p=treinoProgress(t);if(p.total&&p.done===p.total)trainingsDone++});let slaLateActive=0;active.forEach(c=>{const s=getSlaStatus(c);if(s&&s.days<0&&getStatus(c)!=='concluido')slaLateActive++});return{activeClients:active.length,goLives,inProgress:active.filter(c=>getStatus(c)==='em_andamento').length,notStarted:active.filter(c=>getStatus(c)==='nao_iniciado').length,tasksDone,tasksTotal,trainings:(data.trainings||[]).length,trainingsDone,wikiOwn:(data.casos||[]).filter(c=>!c.seed).length,fiscalFilled:clients.filter(c=>c.uf&&c.modeloFiscal).length,tefFilled:clients.filter(c=>c.stoneCode).length,slaLateActive,xp:data.gamification.xp||0,streak:calcStreak(data.gamification.activityDays||[])}}
+function computeMetrics(){ensureGamification();const clients=visibleClients();const active=clients.filter(c=>!c.archived);const goLives=clients.filter(c=>c.goLiveAt||getStatus(c)==='concluido').length;let tasksDone=0,tasksTotal=0;active.forEach(c=>['pessoal','roteiro','implementacao'].forEach(k=>(c[k]||[]).forEach(t=>{tasksTotal++;if(t.done)tasksDone++})));let trainingsDone=0;(data.trainings||[]).forEach(t=>{const p=treinoProgress(t);if(p.total&&p.done===p.total)trainingsDone++});let slaLateActive=0;active.forEach(c=>{const s=getSlaStatus(c);if(s&&s.days<0&&getStatus(c)!=='concluido')slaLateActive++});return{activeClients:active.length,goLives,inProgress:active.filter(c=>getStatus(c)==='em_andamento').length,notStarted:active.filter(c=>getStatus(c)==='nao_iniciado').length,tasksDone,tasksTotal,trainings:(data.trainings||[]).length,trainingsDone,wikiOwn:(data.casos||[]).filter(c=>!c.seed).length,fiscalFilled:clients.filter(c=>c.uf&&c.modeloFiscal).length,tefFilled:clients.filter(c=>c.stoneCode).length,slaLateActive,xp:data.gamification.xp||0,streak:calcStreak(data.gamification.activityDays||[])}}
 function currentLevel(xp){let cur=LEVEL_XP[0];LEVEL_XP.forEach(L=>{if(xp>=L.min)cur=L});const idx=LEVEL_XP.findIndex(l=>l.nivel===cur.nivel);const next=LEVEL_XP[idx+1]||null;const span=next?(next.min-cur.min):1;return{cur,next,pct:next?Math.min(100,Math.round((xp-cur.min)/span*100)):100,need:next?(next.min-xp):0}}
 function refreshBadges(doSave){ensureGamification();const m=computeMetrics();const unlocked=new Set(data.gamification.badgesUnlocked||[]);let neu=[];BADGE_DEFS.forEach(b=>{if(!unlocked.has(b.id)&&b.check(m)){unlocked.add(b.id);neu.push(b)}});data.gamification.badgesUnlocked=Array.from(unlocked);if(neu.length&&doSave!==false){save();playDing();showToast('🏅 '+neu.map(b=>b.nome).join(', '))}}
 function bootstrapXPFromData(){ensureGamification();if(data.gamification.bootstrapped)return;let xp=0;(data.clients||[]).forEach(c=>{xp+=5;if(c.goLiveAt||getStatus(c)==='concluido')xp+=50;['pessoal','roteiro','implementacao'].forEach(k=>(c[k]||[]).forEach(t=>{if(t.done)xp+=2}))});(data.trainings||[]).forEach(t=>{xp+=5;const p=treinoProgress(t);if(p.total&&p.done===p.total)xp+=40});(data.casos||[]).filter(c=>!c.seed).forEach(()=>xp+=25);data.gamification.xp=Math.max(data.gamification.xp||0,xp);data.gamification.bootstrapped=true;markActivityDay();refreshBadges(false);save()}
@@ -1534,6 +1643,7 @@ function onSearchInput(){
   if(currentTab==='impostos') renderImpostosHome();
 }
 function renderSidebar(){
+  try{ renderOwnerFilter(); }catch(e){}
   const area=document.getElementById('listArea');if(!area)return;if(currentTab==='clientes')renderClientList(area);else if(currentTab==='treino'){const list=getAllTrainSessions();document.getElementById('listCount').textContent=list.length+' sessões';area.innerHTML=list.map(t=>{const p=t.kind==='manual'?manualProgress(t):treinoProgress(t);const label=t.kind==='manual'?'Manual oficial':(t.tipo||'rápido');return `<div class="list-item ${selectedId===t.id?'active':''}" onclick="openTrainSession('${t.id}','${t.kind}')"><div class="list-item-title">${escapeHtml(t.clientName||'Sessão')}</div><div class="list-item-meta">${p.percent}% · ${escapeHtml(label)}</div></div>`}).join('')||'<div class="empty-msg">Nenhuma sessão</div>'}else if(currentTab==='scripts'){
     const q=((document.getElementById('searchInput')||{}).value||'').toLowerCase().trim();
     const tag=data.scriptTagFilter||'';
@@ -1544,7 +1654,7 @@ function renderSidebar(){
     area.innerHTML=list.map(s=>`<div class="list-item ${selectedId===s.id?'active':''}" onclick="selectScript('${s.id}')"><div class="list-item-title">${escapeHtml(s.titulo)}</div>${s.tags&&s.tags.length?`<div class="list-item-meta">${s.tags.slice(0,2).map(t=>'<span class="tag-chip" style="font-size:.65rem;padding:1px 5px">'+escapeHtml(t)+'</span>').join(' ')}</div>`:''}</div>`).join('')||'<div class="empty-msg">Nenhum script</div>';
   }else if(currentTab==='casos'){const q=((document.getElementById('searchInput')||{}).value||'');const tag=data.wikiTagFilter||'';const list=filterWikiList(data.casos||[],q,tag);document.getElementById('listCount').textContent=list.length+' artigos';area.innerHTML=list.map(c=>`<div class="list-item ${selectedId===c.id?'active':''}" onclick="selectCaso('${c.id}')"><div class="list-item-title">${escapeHtml(c.titulo)}</div>${((c.tags&&c.tags.length)||(c.anexos&&c.anexos.length))?`<div class="list-item-meta">${(c.tags||[]).slice(0,2).map(tg=>'<span class="tag-chip" style="font-size:.65rem;padding:1px 5px">'+escapeHtml(tg)+'</span>').join(' ')}${(c.anexos&&c.anexos.length)?' · '+c.anexos.length+' arquivo'+(c.anexos.length>1?'s':''):''}</div>`:''}</div>`).join('')||'<div class="empty-msg">Nenhum artigo</div>'}else{document.getElementById('listCount').textContent=currentTab;area.innerHTML='<div class="empty-msg">Painel →</div>'}}
 
-function renderClientList(area){const search=((document.getElementById('searchInput')||{}).value||'').toLowerCase().trim();const filter=((document.getElementById('statusFilter')||{}).value)||'acompanhando';const prio=((document.getElementById('prioFilter')||{}).value)||'all';let list=(data.clients||[]).filter(c=>{const ms=!search||(c.nome||'').toLowerCase().includes(search)||(c.codigo||'').toLowerCase().includes(search)||(c.observacoes||'').toLowerCase().includes(search);if(!ms)return false;if(prio!=='all'&&c.prioridade!==prio)return false;const st=getStatus(c),arch=!!c.archived;if(filter==='arquivados')return arch;if(filter==='meu_dia')return isMeuDia(c);if(filter==='sla_atrasado'){const s=getSlaStatus(c);return !arch&&s&&s.days<0&&st!=='concluido'}if(filter==='acompanhando')return !arch&&(st==='em_andamento'||st==='nao_iniciado');if(filter==='all')return !arch;return !arch&&st===filter});list.sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));document.getElementById('listCount').textContent=list.length+' clientes';
+function renderClientList(area){const search=((document.getElementById('searchInput')||{}).value||'').toLowerCase().trim();const filter=((document.getElementById('statusFilter')||{}).value)||'acompanhando';const prio=((document.getElementById('prioFilter')||{}).value)||'all';let list=visibleClients().filter(c=>{const ms=!search||(c.nome||'').toLowerCase().includes(search)||(c.codigo||'').toLowerCase().includes(search)||(c.observacoes||'').toLowerCase().includes(search);if(!ms)return false;if(prio!=='all'&&c.prioridade!==prio)return false;const st=getStatus(c),arch=!!c.archived;if(filter==='arquivados')return arch;if(filter==='meu_dia')return isMeuDia(c);if(filter==='sla_atrasado'){const s=getSlaStatus(c);return !arch&&s&&s.days<0&&st!=='concluido'}if(filter==='acompanhando')return !arch&&(st==='em_andamento'||st==='nao_iniciado');if(filter==='all')return !arch;return !arch&&st===filter});list.sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));document.getElementById('listCount').textContent=list.length+' clientes';
 area.innerHTML=list.map(c=>{
   const p=progressOf(c); const st=getStatus(c); const sla=getSlaStatus(c);
   const pr=c.prioridade||'media';
@@ -1558,7 +1668,7 @@ area.innerHTML=list.map(c=>{
     <div class="list-item-title">${escapeHtml(c.nome)}</div>
     ${obs?`<div class="list-item-obs">${escapeHtml(obs)}</div>`:''}
     <div class="list-item-meta">
-      <span class="code">#${escapeHtml(c.codigo||'—')} · ${days}d · ${when}</span>
+      <span class="code">#${escapeHtml(c.codigo||'—')} · ${days}d · ${when}${isAdminUser()||!c.ownerUid?' · '+escapeHtml(clientOwnerName(c)):''}</span>
       <span class="pill ${prPill}">${escapeHtml(pr)}</span>
       <span class="pill ${stPill}">${escapeHtml(stLabel)}</span>
       ${sla&&sla.days<0&&st!=='concluido'?`<span class="pill pill-alta">${escapeHtml(sla.label)}</span>`:''}
@@ -1574,7 +1684,7 @@ function renderClientDetail(){
   function tasksHtml(secao,title){const arr=c[secao]||[];return `<div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>${title} (${arr.filter(t=>t.done).length}/${arr.length})</span><span class="chevron">▶</span></div><div class="section-body open"><button class="btn btn-sm btn-outline" style="margin-bottom:6px" onclick="completeAllSection('${c.id}','${secao}')">Concluir todas</button>${arr.map(t=>`<div class="check-item ${t.done?'done':''}" id="task-${t.id}"><input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${c.id}','${secao}','${t.id}')" /><div class="check-text">${escapeHtml(t.texto)}</div></div>`).join('')}</div></div>`}
   const backupBanner=needsWeeklyBackup()?`<div class="backup-banner"><span>💾 Backup semanal pendente</span><button class="btn btn-sm btn-success" onclick="exportData()">Baixar agora</button></div>`:'';
   const unidadesHtml = (c.unidades&&c.unidades.length) ? `<div style="font-size:.75rem;color:var(--text-muted);margin-top:4px">Unidades: ${c.unidades.map(u=>escapeHtml(u.nome)+(u.id?' ('+escapeHtml(u.id)+')':'')).join(' · ')}</div>` : '';
-  view.innerHTML=`<div class="main-header"><div class="main-header-info"><h2 style="border-left:4px solid ${c.cor||'var(--primary)'};padding-left:8px">${escapeHtml(c.nome)}</h2><div class="main-header-meta">${escapeHtml(c.codigo||'—')} · ${st} · ${p.percent}% · Criado ${fmt(c.createdAt)}${sla?` · <span class="badge ${sla.cls}">${sla.label}</span>`:''}</div>${unidadesHtml}</div>
+  view.innerHTML=`<div class="main-header"><div class="main-header-info"><h2 style="border-left:4px solid ${c.cor||'var(--primary)'};padding-left:8px">${escapeHtml(c.nome)}</h2><div class="main-header-meta">${escapeHtml(c.codigo||'—')} · ${st} · ${p.percent}% · Criado ${fmt(c.createdAt)} · Analista: ${escapeHtml(clientOwnerName(c))}${!c.ownerUid?` <button class="btn btn-sm btn-outline" style="padding:2px 8px;font-size:.7rem" onclick="claimClient('${c.id}')">Assumir</button>`:''}${sla?` · <span class="badge ${sla.cls}">${sla.label}</span>`:''}</div>${unidadesHtml}</div>
   <div class="main-header-actions"><button class="btn btn-sm btn-outline" onclick="openClientModal('${c.id}')">Editar</button><button class="btn btn-sm btn-success" onclick="finalizarCliente('${c.id}')">✅ Finalizar</button><button class="btn btn-sm btn-outline" onclick="copyPendingPessoal('${c.id}')">📋 Pendências</button><button class="btn btn-sm btn-outline" onclick="showConclusaoMenu('${c.id}')">✅ Conclusão</button><button class="btn btn-sm btn-outline" onclick="exportClientPdf('${c.id}')">📄 PDF</button><button class="btn btn-sm btn-outline" onclick="toggleArchive('${c.id}')">${c.archived?'Desarquivar':'Arquivar'}</button></div></div>
   <div class="main-content">${backupBanner}<div class="progress-wrap"><div class="progress-bar" style="width:${p.percent}%"></div></div>
   <div class="info-grid"><div class="info-card"><div class="info-card-label">Telefone</div><div class="info-card-value">${c.telefone?escapeHtml(c.telefone):'—'}</div></div><div class="info-card"><div class="info-card-label">Prioridade</div><div class="info-card-value">${escapeHtml(c.prioridade||'')}</div></div><div class="info-card"><div class="info-card-label">Tipo</div><div class="info-card-value">${escapeHtml(c.tipo||'')}</div></div><div class="info-card"><div class="info-card-label">Dias</div><div class="info-card-value">${daysSince(c.createdAt)}</div></div></div>
@@ -1787,6 +1897,10 @@ function openClientModal(id){
         <label>Código / ID principal</label>
         <input id="m_codigo" value="${c?escapeHtml(c.codigo||''):''}" placeholder="Ex: 55315" />
       </div>
+      ${isAdminUser()?`<div class="form-group">
+        <label>Analista responsável</label>
+        <select id="m_owner">${[['','Sem responsável']].concat((analysts||[]).filter(a=>a&&a.id).slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR')).map(a=>[a.id,a.nome||'—'])).map(o=>`<option value="${escapeHtml(o[0])}" ${(c?(c.ownerUid||''):myUid())===o[0]?'selected':''}>${escapeHtml(o[1])}</option>`).join('')}</select>
+      </div>`:''}
       <div class="form-group">
         <label>Unidades adicionais (multi-unidade)</label>
         <textarea id="m_unidades" style="min-height:70px" placeholder="Uma por linha: Nome da unidade | ID&#10;Ex: Texas Burguer Centro | 55316">${c&&c.unidades?escapeHtml(c.unidades.map(u=>u.nome+(u.id?' | '+u.id:'')).join('\n')):''}</textarea>
@@ -1809,6 +1923,8 @@ function saveClientModal(){
     return n?{nome:n,id:i||''}:null;
   }).filter(Boolean);
   const payload={nome,codigo,unidades};
+  const ownerSel=document.getElementById('m_owner');
+  if(ownerSel && isAdminUser()){ payload.ownerUid=ownerSel.value||''; payload.ownerNome=ownerSel.value?analystNameById(ownerSel.value):''; }
   if(id){
     const i=data.clients.findIndex(x=>x.id===id);
     if(i>=0) data.clients[i]={...data.clients[i],...payload,updatedAt:new Date().toISOString()};
@@ -1823,7 +1939,7 @@ function saveClientModal(){
 }
 function onUfChange(){/* removed */}
 
-function renderDashboard(){showDetail();const m=computeMetrics();const alerts=[];(data.clients||[]).forEach(c=>{(c.alertas||[]).filter(a=>!a.done&&new Date(a.quando)<=new Date(Date.now()+86400000)).forEach(a=>alerts.push({c,a}))});const meuDia=(data.clients||[]).filter(isMeuDia);const backupBanner=needsWeeklyBackup()?`<div class="backup-banner"><span>💾 Backup semanal pendente</span><button class="btn btn-sm btn-success" onclick="exportData()">Baixar</button></div>`:'';document.getElementById('detailView').innerHTML=`<div class="main-header"><div class="main-header-info"><h2>Hoje</h2><div class="main-header-meta">Meu dia + alertas + SLA</div></div></div><div class="main-content">${backupBanner}<div class="info-grid"><div class="info-card"><div class="info-card-label">Ativos</div><div class="info-card-value">${m.activeClients}</div></div><div class="info-card"><div class="info-card-label">Go-lives</div><div class="info-card-value">${m.goLives}</div></div><div class="info-card"><div class="info-card-label">Meu dia</div><div class="info-card-value">${meuDia.length}</div></div><div class="info-card"><div class="info-card-label">SLA atraso</div><div class="info-card-value">${m.slaLateActive}</div></div>${isModuleOn('carreira')?`<div class="info-card"><div class="info-card-label">XP</div><div class="info-card-value">${m.xp}</div></div><div class="info-card"><div class="info-card-label">Streak</div><div class="info-card-value">${m.streak}🔥</div></div>`:''}</div>
+function renderDashboard(){showDetail();const m=computeMetrics();const alerts=[];visibleClients().forEach(c=>{(c.alertas||[]).filter(a=>!a.done&&new Date(a.quando)<=new Date(Date.now()+86400000)).forEach(a=>alerts.push({c,a}))});const meuDia=visibleClients().filter(isMeuDia);const backupBanner=needsWeeklyBackup()?`<div class="backup-banner"><span>💾 Backup semanal pendente</span><button class="btn btn-sm btn-success" onclick="exportData()">Baixar</button></div>`:'';document.getElementById('detailView').innerHTML=`<div class="main-header"><div class="main-header-info"><h2>Hoje</h2><div class="main-header-meta">Meu dia + alertas + SLA${isAdminUser()?' · Carteira: '+escapeHtml(ownerFilterLabel()):''}</div></div></div><div class="main-content">${backupBanner}<div class="info-grid"><div class="info-card"><div class="info-card-label">Ativos</div><div class="info-card-value">${m.activeClients}</div></div><div class="info-card"><div class="info-card-label">Go-lives</div><div class="info-card-value">${m.goLives}</div></div><div class="info-card"><div class="info-card-label">Meu dia</div><div class="info-card-value">${meuDia.length}</div></div><div class="info-card"><div class="info-card-label">SLA atraso</div><div class="info-card-value">${m.slaLateActive}</div></div>${isModuleOn('carreira')?`<div class="info-card"><div class="info-card-label">XP</div><div class="info-card-value">${m.xp}</div></div><div class="info-card"><div class="info-card-label">Streak</div><div class="info-card-value">${m.streak}🔥</div></div>`:''}</div>
 <h3 style="font-size:.9rem;margin:8px 0">Só meu dia</h3>${meuDia.slice(0,20).map(c=>`<div class="list-item" ${isModuleOn('clientes')?`onclick="switchTab('clientes');setTimeout(()=>selectClient('${c.id}'),30)"`:''} style="${isModuleOn('clientes')?'':'cursor:default;'}border-left-color:${c.cor||'var(--primary)'}"><div class="list-item-title">${escapeHtml(c.nome)}</div><div class="list-item-meta">${progressOf(c).percent}% · ${getStatus(c)}</div></div>`).join('')||'<div class="empty-msg">Nada prioritário</div>'}
 <h3 style="font-size:.9rem;margin:12px 0 6px">Alertas 24h</h3>${alerts.slice(0,15).map(x=>`<div class="history-item"><div class="time">${fmt(x.a.quando)}</div>${escapeHtml(x.c.nome)} — ${escapeHtml(x.a.texto)}</div>`).join('')||'<div class="empty-msg">Nenhum</div>'}</div>`}
 
@@ -2790,7 +2906,7 @@ function openTrainSession(id, kind){
   else selectTraining(id);
 }
 function startNewTraining(){
-  const opts=(data.clients||[]).filter(c=>!c.archived).map(c=>`<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
+  const opts=visibleClients().filter(c=>!c.archived).map(c=>`<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
   document.getElementById('modal').style.display='flex';
   document.getElementById('modal').innerHTML=`<div class="modal-box"><h3>Nova sessão de treinamento</h3>
     <div class="form-group"><label>Cliente</label><select id="m_t_client"><option value="">— avulso —</option>${opts}</select></div>
@@ -2920,7 +3036,7 @@ function manualProgress(s){
   return {done,total,percent:total?Math.round(done/total*100):0};
 }
 function startNewManual(){
-  const opts=(data.clients||[]).filter(c=>!c.archived).map(c=>`<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
+  const opts=visibleClients().filter(c=>!c.archived).map(c=>`<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
   document.getElementById('modal').style.display='flex';
   document.getElementById('modal').innerHTML=`<div class="modal-box"><h3>Sessão — Manual oficial</h3>
     <div class="form-group"><label>Cliente</label><select id="m_man_client"><option value="">—</option>${opts}</select></div>
@@ -3049,7 +3165,7 @@ ${[['1','Hoje','dashboard'],['2','Clientes','clientes'],['3','Agenda','agenda'],
 <div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>Histórico de alterações</span><span class="chevron">▶</span></div><div class="section-body open" id="auditLogList">${typeof renderAuditList==='function'?renderAuditList():''}</div></div>
 </div>`}
 
-function checkAlerts(){const now=Date.now();(data.clients||[]).forEach(c=>{(c.alertas||[]).forEach(a=>{if(a.done||a._notified)return;const t=new Date(a.quando).getTime();if(t<=now&&t>now-120000){a._notified=true;try{if(Notification.permission==='granted')new Notification('Onboarding: '+c.nome,{body:a.texto,requireInteraction:true})}catch(e){}showToast('⏰ '+c.nome+': '+a.texto)}})});save()}
+function checkAlerts(){const now=Date.now();let changed=false;myOwnClients().forEach(c=>{(c.alertas||[]).forEach(a=>{if(a.done||a._notified)return;const t=new Date(a.quando).getTime();if(t<=now&&t>now-120000){a._notified=true;changed=true;try{if(Notification.permission==='granted')new Notification('Onboarding: '+c.nome,{body:a.texto,requireInteraction:true})}catch(e){}showToast('⏰ '+c.nome+': '+a.texto)}})});if(changed)save()}
 setInterval(checkAlerts,30000);
 
 document.addEventListener('keydown',function(ev){
