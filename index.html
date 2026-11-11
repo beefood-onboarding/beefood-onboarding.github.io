@@ -648,6 +648,14 @@ function applyCollectionSnapshot(col, snap){
     if(!l || !l.id || seen[l.id]) return;
     if(dirty[l.id] && dirty[l.id]!=='delete') merged.push(l);
   });
+  if(col==='clients'){
+    for(let i=0;i<merged.length;i++){
+      const it=merged[i];
+      if(it && !(Array.isArray(it.alinhamento) && ALINHAMENTO_DEFAULT.every(a=>it.alinhamento.some(t=>t&&(t.key===a.key||t.id==='al_'+a.key))))){
+        const cp=JSON.parse(JSON.stringify(it)); ensureAlinhamento(cp); merged[i]=cp;
+      }
+    }
+  }
   data[col]=merged;
   persistLocalOnly();
   if(fbReady) refreshViewsIfNeeded();
@@ -1226,12 +1234,38 @@ async function loadFromTeam(){
   }
 }
 
+const ALINHAMENTO_DEFAULT=[
+  {key:'cardapio',g:'Cardápio',t:'Já possui loja no iFood com o cardápio cadastrado? Quer usá-lo como base para importar para a BeeFood ou prefere cadastrar do zero?'},
+  {key:'integracoes',g:'Integrações',t:'Quais aplicativos pretende utilizar na operação (ex: iFood, 99Food, etc.)?'},
+  {key:'cardapio_digital',g:'Cardápio Digital',t:'Já tem a logo e a imagem de capa da loja? Qual número de WhatsApp será utilizado?'},
+  {key:'pagamento',g:'Formas de Pagamento',t:'Quais formas deseja aceitar (Pix, dinheiro, cartão)? Já tem alguma configuração definida?'},
+  {key:'horarios',g:'Horários',t:'Quais serão os dias e horários de funcionamento?'},
+  {key:'endereco',g:'Endereço e Entregas',t:'Qual é o endereço da loja e como pretende organizar a área e as taxas de entrega?'},
+  {key:'fiscal',g:'Fiscal',t:'Utilizará a emissão de notas ou cupons fiscais pela BeeFood?'},
+  {key:'presencial',g:'Atendimento Presencial',t:'Utilizará mesas, comandas e cadastro de funcionários no sistema?'},
+  {key:'acesso_remoto',g:'Acesso Remoto',t:'Podemos combinar um acesso remoto para instalar/configurar o BeeFood 3.0 e ajustar as impressoras?'}
+];
+const ALINHAMENTO_FECHAMENTO='Com isso alinhado, conseguiremos deixar tudo pronto e dar continuidade à implantação de forma bem rápida!';
+function mapAlinhamento(){return ALINHAMENTO_DEFAULT.map(a=>({id:'al_'+a.key,key:a.key,texto:a.g+': '+a.t,done:false}))}
+// Garante o alinhamento inicial sem mexer nos itens já existentes (ids fixos = idempotente entre navegadores)
+function ensureAlinhamento(c){
+  if(!c) return false;
+  let changed=false;
+  if(!Array.isArray(c.alinhamento)){ c.alinhamento=[]; changed=true; }
+  const have=new Set(c.alinhamento.map(t=>t&&(t.key||t.id)));
+  ALINHAMENTO_DEFAULT.forEach(a=>{
+    if(!have.has(a.key) && !have.has('al_'+a.key)){ c.alinhamento.push({id:'al_'+a.key,key:a.key,texto:a.g+': '+a.t,done:false}); changed=true; }
+  });
+  if(changed){ const order=ALINHAMENTO_DEFAULT.map(a=>a.key); c.alinhamento.sort((x,y)=>{const ix=order.indexOf(x.key),iy=order.indexOf(y.key);return (ix<0?99:ix)-(iy<0?99:iy)}); }
+  return changed;
+}
 const PESSOAL_DEFAULT=['Verificar se o cliente acessou ao sistema','Verificar se enviou o formulário CRM','Verificar cadastro do cardápio','Perguntar se tem loja no iFood para clonar cardápio','Perguntar se já possui cardápio montado para clonar','Integrar apps que o cliente for utilizar','Configurar cardápio digital (capa, logo, WhatsApp)','Confirmar formas de pagamento','Configurar horário de abertura','Confirmar endereço e área de entrega','Configurar Fiscal (se utilizar)','Cadastrar mesas/comandas/funcionários (se utilizar)','Acesso remoto: baixar e configurar BeeFood 3.0 e impressoras'];
 const ROTEIRO_DEFAULT=['Verificar formulário inicial','Acessar e verificar banco de dados','Inserir links de cardápio digital no card','Preencher dados empresa (CNPJ, Razão Social, IE)','Chamar o cliente no chat'];
 const IMPL_DEFAULT=['Verificar usuários','Configuração do sistema no computador','Teste de impressão','Inserir logo','Verificar/ajustar telefone','Horários e fuso','Gerar ou apagar mesas/comandas','Integração POS Stone','Formas de recebimento presenciais','Formas de recebimento delivery','Áreas de atendimento','Integrações marketplace','Verificar fiscal','Confirmar cadastro de produtos','Confirmar data de início / go-live'];
 const FISCAL_UF={AC:'NFCe',AL:'NFCe',AP:'NFCe',AM:'NFCe',BA:'NFCe',CE:'NFCe',DF:'NFCe',ES:'NFCe',GO:'NFCe',MA:'NFCe',MT:'NFCe',MS:'NFCe',MG:'NFCe',PA:'NFCe',PB:'NFCe',PR:'NFCe',PE:'NFCe',PI:'NFCe',RJ:'NFCe',RN:'NFCe',RS:'NFCe',RO:'NFCe',RR:'NFCe',SC:'Verificar (SC fora do padrão)',SE:'NFCe',SP:'SAT ou NFCe',TO:'NFCe'};
 const DEFAULT_BITRIX=[{id:'bx_inicio',titulo:'Bitrix — Início',texto:'Olá! Iniciamos o onboarding.\nCliente: {{nome}}\nCódigo: {{codigo}}'},{id:'bx_bloqueio',titulo:'Bitrix — Pendência',texto:'Atendimento pausado.\nCliente: {{nome}}\nMotivo: {{motivo}}'},{id:'bx_final',titulo:'Bitrix — Finalização',texto:'Onboarding finalizado.\nCliente: {{nome}}\nCódigo: {{codigo}}\nCliente apto a operar com o BeeFood.'},{id:'bx_treino',titulo:'Bitrix — Treino',texto:'Treinamento concluído.\nCliente: {{nome}}\nTipo: {{tipo}}'}];
 const DEFAULT_SCRIPTS=[
+  {titulo:'Alinhamento inicial',texto:'Cardápio: Já possui loja no iFood com o cardápio cadastrado? Quer usá-lo como base para importar para a BeeFood ou prefere cadastrar do zero?\nIntegrações: Quais aplicativos pretende utilizar na operação (ex: iFood, 99Food, etc.)?\nCardápio Digital: Já tem a logo e a imagem de capa da loja? Qual número de WhatsApp será utilizado?\nFormas de Pagamento: Quais formas deseja aceitar (Pix, dinheiro, cartão)? Já tem alguma configuração definida?\nHorários: Quais serão os dias e horários de funcionamento?\nEndereço e Entregas: Qual é o endereço da loja e como pretende organizar a área e as taxas de entrega?\nFiscal: Utilizará a emissão de notas ou cupons fiscais pela BeeFood?\nAtendimento Presencial: Utilizará mesas, comandas e cadastro de funcionários no sistema?\nAcesso Remoto: Podemos combinar um acesso remoto para instalar/configurar o BeeFood 3.0 e ajustar as impressoras?\n\nCom isso alinhado, conseguiremos deixar tudo pronto e dar continuidade à implantação de forma bem rápida!',tags:['geral','onboarding']},
   // === GERAL / ONBOARDING [ONB] ===
   {titulo:'O que é o BeeFood',texto:'Seja muito bem-vindo ao BeeFood! O BeeFood é um sistema de gestão completo para seu estabelecimento. Com ele você gerencia em um único lugar o seu PDV de balcão, controle de mesas e comandas, cardápio digital para delivery, integração com marketplaces (iFood, Keeta, 99Food), bot de atendimento via WhatsApp, impressão por setores na cozinha, aplicativo do entregador e emissão fiscal.\n\nVamos começar os primeiros passos para deixar sua operação pronta para faturar?',tags:['geral','onboarding']},
   {titulo:'Sondagem inicial de operação',texto:'Notei que você já iniciou algumas configurações no sistema! Antes de avançarmos com as ativações, me conta um pouquinho sobre como funciona a sua operação hoje:\n\n1. Sua loja é focada apenas em Delivery/Retirada ou você também atende presencialmente com consumo no local (mesas/comandas)?\n2. Sobre as entregas, você trabalha com entregadores próprios ou utiliza a entrega parceira das plataformas (ex: Entrega Fácil do iFood)?\n\nCom essas respostas vamos ajustar o roteiro perfeito para a sua realidade!',tags:['geral','onboarding']},
@@ -1424,15 +1458,15 @@ function daysSince(iso){if(!iso)return 999;return Math.floor((Date.now()-new Dat
 function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function mapTasks(list){return (list||[]).map(t=>({id:uid(),texto:t,done:false}))}
 
-function createClient(d){const now=new Date().toISOString();return{ownerUid:d.ownerUid!=null?d.ownerUid:myUid(),ownerNome:d.ownerNome!=null?d.ownerNome:((currentAnalyst&&currentAnalyst.nome)||''),id:uid(),nome:d.nome||'',codigo:d.codigo||'',telefone:d.telefone||'',prioridade:d.prioridade||'media',tipo:d.tipo||'completo',tags:d.tags||[],cor:d.cor||'var(--primary)',observacoes:d.observacoes||'',slaDate:d.slaDate||'',uf:d.uf||'',modeloFiscal:d.modeloFiscal||'',cscId:d.cscId||'',cscToken:d.cscToken||'',certificadoTipo:d.certificadoTipo||'',certificadoValidade:d.certificadoValidade||'',stoneCode:d.stoneCode||'',pinpadPorta:d.pinpadPorta||'',posVendaD7:false,posVendaD30:false,handoffNote:'',pessoal:mapTasks(PESSOAL_DEFAULT),roteiro:mapTasks(ROTEIRO_DEFAULT),implementacao:mapTasks(IMPL_DEFAULT),alertas:[],history:[],archived:false,createdAt:now,updatedAt:now,lastAccessedAt:now,goLiveAt:null}}
-function normalizeClient(c){if(!c.pessoal)c.pessoal=mapTasks(PESSOAL_DEFAULT);if(!c.roteiro)c.roteiro=mapTasks(ROTEIRO_DEFAULT);if(!c.implementacao)c.implementacao=mapTasks(IMPL_DEFAULT);if(!c.alertas)c.alertas=[];if(!c.history)c.history=[];if(!c.tags)c.tags=[];['uf','modeloFiscal','cscId','cscToken','certificadoTipo','certificadoValidade','stoneCode','pinpadPorta','handoffNote'].forEach(k=>{if(c[k]==null)c[k]=''});if(c.posVendaD7==null)c.posVendaD7=false;if(c.posVendaD30==null)c.posVendaD30=false;if(!c.cor)c.cor='var(--primary)';return c}
+function createClient(d){const now=new Date().toISOString();return{ownerUid:d.ownerUid!=null?d.ownerUid:myUid(),ownerNome:d.ownerNome!=null?d.ownerNome:((currentAnalyst&&currentAnalyst.nome)||''),id:uid(),nome:d.nome||'',codigo:d.codigo||'',telefone:d.telefone||'',prioridade:d.prioridade||'media',tipo:d.tipo||'completo',tags:d.tags||[],cor:d.cor||'var(--primary)',observacoes:d.observacoes||'',slaDate:d.slaDate||'',uf:d.uf||'',modeloFiscal:d.modeloFiscal||'',cscId:d.cscId||'',cscToken:d.cscToken||'',certificadoTipo:d.certificadoTipo||'',certificadoValidade:d.certificadoValidade||'',stoneCode:d.stoneCode||'',pinpadPorta:d.pinpadPorta||'',posVendaD7:false,posVendaD30:false,handoffNote:'',alinhamento:mapAlinhamento(),pessoal:mapTasks(PESSOAL_DEFAULT),roteiro:mapTasks(ROTEIRO_DEFAULT),implementacao:mapTasks(IMPL_DEFAULT),alertas:[],history:[],archived:false,createdAt:now,updatedAt:now,lastAccessedAt:now,goLiveAt:null}}
+function normalizeClient(c){ensureAlinhamento(c);if(!c.pessoal)c.pessoal=mapTasks(PESSOAL_DEFAULT);if(!c.roteiro)c.roteiro=mapTasks(ROTEIRO_DEFAULT);if(!c.implementacao)c.implementacao=mapTasks(IMPL_DEFAULT);if(!c.alertas)c.alertas=[];if(!c.history)c.history=[];if(!c.tags)c.tags=[];['uf','modeloFiscal','cscId','cscToken','certificadoTipo','certificadoValidade','stoneCode','pinpadPorta','handoffNote'].forEach(k=>{if(c[k]==null)c[k]=''});if(c.posVendaD7==null)c.posVendaD7=false;if(c.posVendaD30==null)c.posVendaD30=false;if(!c.cor)c.cor='var(--primary)';return c}
 (data.clients||[]).forEach(normalizeClient);
 
-function getStatus(c){const all=[...(c.pessoal||[]),...(c.roteiro||[]),...(c.implementacao||[])];if(!all.length)return 'nao_iniciado';const d=all.filter(t=>t.done).length;if(!d)return 'nao_iniciado';if(d===all.length)return 'concluido';return 'em_andamento'}
+function getStatus(c){const all=[...(c.alinhamento||[]),...(c.pessoal||[]),...(c.roteiro||[]),...(c.implementacao||[])];if(!all.length)return 'nao_iniciado';const d=all.filter(t=>t.done).length;if(!d)return 'nao_iniciado';if(d===all.length)return 'concluido';return 'em_andamento'}
 function getSlaStatus(c){if(!c.slaDate)return null;const end=new Date(c.slaDate+'T23:59:59');const diff=Math.ceil((end-Date.now())/86400000);if(getStatus(c)==='concluido')return{label:'OK',cls:'badge-sla-ok',days:diff};if(diff<0)return{label:'Atrasado '+Math.abs(diff)+'d',cls:'badge-sla-late',days:diff};if(diff<=2)return{label:diff+'d',cls:'badge-sla-warn',days:diff};return{label:diff+'d',cls:'badge-sla-ok',days:diff}}
 function touch(c){c.updatedAt=new Date().toISOString();c.lastAccessedAt=c.updatedAt}
 function addHistory(c,text){if(!c.history)c.history=[];c.history.unshift({id:uid(),text,at:new Date().toISOString()});if(c.history.length>80)c.history=c.history.slice(0,80)}
-function progressOf(c){const all=[...(c.pessoal||[])];const done=all.filter(t=>t.done).length,total=all.length||1;return{done,total,percent:Math.round(done/total*100)}}
+function progressOf(c){const all=[...(c.alinhamento||[]),...(c.pessoal||[])];const done=all.filter(t=>t.done).length,total=all.length||1;return{done,total,percent:Math.round(done/total*100)}}
 function fiscalChecklist(c){const modelo=c.modeloFiscal||'';const needCsc=!modelo||modelo==='NFCe';return{uf:!!c.uf,modelo:!!c.modeloFiscal,csc:needCsc?!!(c.cscId&&c.cscToken):true,cert:!!c.certificadoTipo,tef:!!(c.stoneCode||c.pinpadPorta),sugestao:c.uf?(FISCAL_UF[c.uf]||''):''}}
 
 function ensureGamification(){if(!data.gamification)data.gamification={xp:0,events:[],badgesUnlocked:[],activityDays:[],bootstrapped:false};if(!data.gamification.events)data.gamification.events=[];if(!data.gamification.badgesUnlocked)data.gamification.badgesUnlocked=[];if(!data.gamification.activityDays)data.gamification.activityDays=[]}
@@ -1529,7 +1563,7 @@ function treinoProgress(t){const steps=getTreinoSteps(t.tipo||'completo');let do
 function computeMetrics(){ensureGamification();const clients=visibleClients();const active=clients.filter(c=>!c.archived);const goLives=clients.filter(c=>c.goLiveAt||getStatus(c)==='concluido').length;let tasksDone=0,tasksTotal=0;active.forEach(c=>['pessoal','roteiro','implementacao'].forEach(k=>(c[k]||[]).forEach(t=>{tasksTotal++;if(t.done)tasksDone++})));let trainingsDone=0;(data.trainings||[]).forEach(t=>{const p=treinoProgress(t);if(p.total&&p.done===p.total)trainingsDone++});let slaLateActive=0;active.forEach(c=>{const s=getSlaStatus(c);if(s&&s.days<0&&getStatus(c)!=='concluido')slaLateActive++});return{activeClients:active.length,goLives,inProgress:active.filter(c=>getStatus(c)==='em_andamento').length,notStarted:active.filter(c=>getStatus(c)==='nao_iniciado').length,tasksDone,tasksTotal,trainings:(data.trainings||[]).length,trainingsDone,wikiOwn:(data.casos||[]).filter(c=>!c.seed).length,fiscalFilled:clients.filter(c=>c.uf&&c.modeloFiscal).length,tefFilled:clients.filter(c=>c.stoneCode).length,slaLateActive,xp:data.gamification.xp||0,streak:calcStreak(data.gamification.activityDays||[])}}
 function currentLevel(xp){let cur=LEVEL_XP[0];LEVEL_XP.forEach(L=>{if(xp>=L.min)cur=L});const idx=LEVEL_XP.findIndex(l=>l.nivel===cur.nivel);const next=LEVEL_XP[idx+1]||null;const span=next?(next.min-cur.min):1;return{cur,next,pct:next?Math.min(100,Math.round((xp-cur.min)/span*100)):100,need:next?(next.min-xp):0}}
 function refreshBadges(doSave){ensureGamification();const m=computeMetrics();const unlocked=new Set(data.gamification.badgesUnlocked||[]);let neu=[];BADGE_DEFS.forEach(b=>{if(!unlocked.has(b.id)&&b.check(m)){unlocked.add(b.id);neu.push(b)}});data.gamification.badgesUnlocked=Array.from(unlocked);if(neu.length&&doSave!==false){save();playDing();showToast('🏅 '+neu.map(b=>b.nome).join(', '))}}
-function bootstrapXPFromData(){ensureGamification();if(data.gamification.bootstrapped)return;let xp=0;(data.clients||[]).forEach(c=>{xp+=5;if(c.goLiveAt||getStatus(c)==='concluido')xp+=50;['pessoal','roteiro','implementacao'].forEach(k=>(c[k]||[]).forEach(t=>{if(t.done)xp+=2}))});(data.trainings||[]).forEach(t=>{xp+=5;const p=treinoProgress(t);if(p.total&&p.done===p.total)xp+=40});(data.casos||[]).filter(c=>!c.seed).forEach(()=>xp+=25);data.gamification.xp=Math.max(data.gamification.xp||0,xp);data.gamification.bootstrapped=true;markActivityDay();refreshBadges(false);save()}
+function bootstrapXPFromData(){ensureGamification();if(data.gamification.bootstrapped)return;let xp=0;(data.clients||[]).forEach(c=>{xp+=5;if(c.goLiveAt||getStatus(c)==='concluido')xp+=50;['alinhamento','pessoal','roteiro','implementacao'].forEach(k=>(c[k]||[]).forEach(t=>{if(t.done)xp+=2}))});(data.trainings||[]).forEach(t=>{xp+=5;const p=treinoProgress(t);if(p.total&&p.done===p.total)xp+=40});(data.casos||[]).filter(c=>!c.seed).forEach(()=>xp+=25);data.gamification.xp=Math.max(data.gamification.xp||0,xp);data.gamification.bootstrapped=true;markActivityDay();refreshBadges(false);save()}
 function ensureWikiSeed(){if(!data.casos)data.casos=[];const titles=new Set(data.casos.map(c=>(c.titulo||'').toLowerCase()));const now=new Date().toISOString();let added=0;WIKI_SEED.forEach(s=>{if(titles.has(s.titulo.toLowerCase()))return;data.casos.push({id:uid(),titulo:s.titulo,texto:s.texto,solucao:s.solucao,tags:(s.tags||[]).slice(),createdAt:now,updatedAt:now,seed:true});added++});if(added)save()}
 function ensureDefaultScripts(){
   if(!data.scripts) data.scripts=[];
@@ -1602,7 +1636,7 @@ function toggleFocusMode(){
 function exportClientPdf(id){
   const c=data.clients.find(x=>x.id===id); if(!c) return;
   const p=progressOf(c); const st=getStatus(c);
-  const pend=[...(c.pessoal||[]),...(c.roteiro||[]),...(c.implementacao||[])].filter(t=>!t.done).map(t=>'• '+t.texto).join('\\n')||'Nenhuma pendência';
+  const pend=[...(c.alinhamento||[]),...(c.pessoal||[]),...(c.roteiro||[]),...(c.implementacao||[])].filter(t=>!t.done).map(t=>'• '+t.texto).join('\\n')||'Nenhuma pendência';
   const htmlDoc=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(c.nome)}</title>
   <style>body{font-family:system-ui,sans-serif;padding:24px;color:#111;max-width:720px;margin:auto}h1{font-size:1.3rem}h2{font-size:1rem;margin-top:18px;border-bottom:1px solid #ddd;padding-bottom:4px}
   .meta{color:#555;font-size:.9rem}pre{white-space:pre-wrap;background:#f6f6f6;padding:10px;border-radius:8px;font-size:.85rem}</style></head><body>
@@ -1681,7 +1715,7 @@ function selectClient(id){if(!isModuleOn('clientes')){if(currentTab!=='dashboard
 function renderClientDetail(){
   const c=data.clients.find(x=>x.id===selectedId);if(!c)return;
   const view=document.getElementById('detailView');const p=progressOf(c);const st=getStatus(c);const sla=getSlaStatus(c);const fc=fiscalChecklist(c);
-  function tasksHtml(secao,title){const arr=c[secao]||[];return `<div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>${title} (${arr.filter(t=>t.done).length}/${arr.length})</span><span class="chevron">▶</span></div><div class="section-body open"><button class="btn btn-sm btn-outline" style="margin-bottom:6px" onclick="completeAllSection('${c.id}','${secao}')">Concluir todas</button>${arr.map(t=>`<div class="check-item ${t.done?'done':''}" id="task-${t.id}"><input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${c.id}','${secao}','${t.id}')" /><div class="check-text">${escapeHtml(t.texto)}</div></div>`).join('')}</div></div>`}
+  function tasksHtml(secao,title,note){const arr=c[secao]||[];return `<div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>${title} (${arr.filter(t=>t.done).length}/${arr.length})</span><span class="chevron">▶</span></div><div class="section-body open"><button class="btn btn-sm btn-outline" style="margin-bottom:6px" onclick="completeAllSection('${c.id}','${secao}')">Concluir todas</button>${arr.map(t=>`<div class="check-item ${t.done?'done':''}" id="task-${t.id}"><input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${c.id}','${secao}','${t.id}')" /><div class="check-text">${secao==='alinhamento'&&String(t.texto).indexOf(': ')>0?'<strong>'+escapeHtml(String(t.texto).split(': ')[0])+':</strong> '+escapeHtml(String(t.texto).split(': ').slice(1).join(': ')):escapeHtml(t.texto)}</div></div>`).join('')}${note?`<p style="margin-top:8px;color:var(--text-muted);font-size:.78rem;font-style:italic">${escapeHtml(note)}</p>`:''}</div></div>`}
   const backupBanner=needsWeeklyBackup()?`<div class="backup-banner"><span>💾 Backup semanal pendente</span><button class="btn btn-sm btn-success" onclick="exportData()">Baixar agora</button></div>`:'';
   const unidadesHtml = (c.unidades&&c.unidades.length) ? `<div style="font-size:.75rem;color:var(--text-muted);margin-top:4px">Unidades: ${c.unidades.map(u=>escapeHtml(u.nome)+(u.id?' ('+escapeHtml(u.id)+')':'')).join(' · ')}</div>` : '';
   view.innerHTML=`<div class="main-header"><div class="main-header-info"><h2 style="border-left:4px solid ${c.cor||'var(--primary)'};padding-left:8px">${escapeHtml(c.nome)}</h2><div class="main-header-meta">${escapeHtml(c.codigo||'—')} · ${st} · ${p.percent}% · Criado ${fmt(c.createdAt)} · Analista: ${escapeHtml(clientOwnerName(c))}${!c.ownerUid?` <button class="btn btn-sm btn-outline" style="padding:2px 8px;font-size:.7rem" onclick="claimClient('${c.id}')">Assumir</button>`:''}${sla?` · <span class="badge ${sla.cls}">${sla.label}</span>`:''}</div>${unidadesHtml}</div>
@@ -1699,6 +1733,7 @@ function renderClientDetail(){
     <span class="fiscal-chip ${fc.tef?'ok':'miss'}">${fc.tef?'✓':'○'} TEF</span>
   </div>
   <button class="btn btn-sm btn-outline" style="margin-top:6px" onclick="openClientModal('${c.id}')">Editar fiscal/TEF</button></div></div>
+  ${tasksHtml('alinhamento','Alinhamento inicial',ALINHAMENTO_FECHAMENTO)}
   ${tasksHtml('pessoal','Checklist')}
   <div class="section-box"><div class="section-head open" onclick="toggleSection(this)"><span>⏰ Alertas (${(c.alertas||[]).filter(a=>!a.done).length})</span><span class="chevron">▶</span></div><div class="section-body open"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><input id="newAlertText" placeholder="Lembrete" style="flex:1;min-width:120px;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px" /><input id="newAlertWhen" placeholder="15:00 ou data hora" style="width:160px;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px" /><button class="btn btn-sm btn-success" onclick="addAlert('${c.id}')">+</button></div>
   ${(c.alertas||[]).map(a=>`<div class="check-item ${a.done?'done':''}"><input type="checkbox" ${a.done?'checked':''} onchange="toggleAlert('${c.id}','${a.id}')" /><div class="check-text">${escapeHtml(a.texto)} <span style="color:var(--text-muted);font-size:.75rem">${fmt(a.quando)}</span></div></div>`).join('')||'<div class="empty-msg">Nenhum</div>'}</div></div>
@@ -1840,6 +1875,7 @@ function copyPendingPessoal(id){
     pend.forEach(t=>blocks.push('• '+t.texto));
     blocks.push('');
   }
+  add('Alinhamento inicial', c.alinhamento);
   add('Pendências pessoais', c.pessoal);
   add('Roteiro', c.roteiro);
   add('Implementação', c.implementacao);
@@ -1869,7 +1905,7 @@ function finalizarCliente(id){
   const n=parseInt(prompt('Qual mensagem de conclusão copiar?\n'+opts+'\n\nNúmero (Enter = automático):'),10);
   let variant='auto';
   if(n>=1 && n<=CONCLUSAO_VARIANTES.length) variant=CONCLUSAO_VARIANTES[n-1].id;
-  ['pessoal','roteiro','implementacao'].forEach(k=>(c[k]||[]).forEach(t=>t.done=true));
+  ['alinhamento','pessoal','roteiro','implementacao'].forEach(k=>(c[k]||[]).forEach(t=>t.done=true));
   if(!c.goLiveAt) c.goLiveAt=new Date().toISOString();
   touch(c); addHistory(c,'Finalizado ('+variant+')'); schedulePosVenda(c); addXP('client_finalize',c.nome); playDing(); save();
   const text=buildFinalizacaoText(c, variant);
